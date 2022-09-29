@@ -1,4 +1,5 @@
-import React, {useCallback, useMemo, useRef} from 'react'
+import React, {useCallback, useEffect, useMemo, useRef} from 'react'
+import {isBooleanSchemaType, isNumberSchemaType} from '@sanity/types'
 import {FieldMember} from '../../store'
 import {
   ArrayOfObjectsInputProps,
@@ -10,7 +11,6 @@ import {
 import {FormPatch, PatchEvent, set, unset} from '../../patch'
 import {useDidUpdate} from '../../hooks/useDidUpdate'
 import {useFormCallbacks} from '../../studio/contexts/FormCallbacks'
-import {isBooleanSchemaType, isNumberSchemaType} from '@sanity/types'
 
 /**
  * Responsible for creating inputProps and fieldProps to pass to ´renderInput´ and ´renderField´ for a primitive field/input
@@ -26,11 +26,11 @@ export function PrimitiveField(props: {
 
   const {onPathBlur, onPathFocus, onChange} = useFormCallbacks()
 
-  useDidUpdate(member.field.focused, (hadFocus, hasFocus) => {
-    if (!hadFocus && hasFocus) {
+  useEffect(() => {
+    if (member.field.focused) {
       focusRef.current?.focus()
     }
-  })
+  }, [member.field.focused])
 
   const handleBlur = useCallback(
     (event: React.FocusEvent) => {
