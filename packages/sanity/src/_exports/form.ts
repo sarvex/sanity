@@ -7,6 +7,9 @@ export type {
 } from '../components/previews'
 export type {ChangeIndicatorProps} from '../components/changeIndicators'
 
+// poc
+export {ArrayWithInlineEdit} from '../form/inputs/arrays/ArrayWithInlineEdit/ArrayWithInlineEdit'
+
 export {Timeline, TimelineController} from '../datastores'
 
 export type {
