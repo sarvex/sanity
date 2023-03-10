@@ -1,6 +1,4 @@
-/* eslint-disable camelcase */
-
-import React, {memo} from 'react'
+import React, {ReactNode, memo} from 'react'
 import {Box, Flex} from '@sanity/ui'
 import {FormNodeValidation} from '@sanity/types'
 import {FieldPresence, FormNodePresence} from '../../../presence'
@@ -10,7 +8,7 @@ export interface FormFieldHeaderProps {
   /**
    * @beta
    */
-  validation?: FormNodeValidation[]
+  __unstable_actions?: ReactNode
   /**
    * @beta
    */
@@ -21,10 +19,21 @@ export interface FormFieldHeaderProps {
    */
   inputId?: string
   title?: React.ReactNode
+  /**
+   * @beta
+   */
+  validation?: FormNodeValidation[]
 }
 
 export const FormFieldHeader = memo(function FormFieldHeader(props: FormFieldHeaderProps) {
-  const {validation, __unstable_presence: presence, description, inputId, title} = props
+  const {
+    __unstable_actions: actions,
+    __unstable_presence: presence,
+    description,
+    inputId,
+    title,
+    validation,
+  } = props
 
   return (
     <Flex align="flex-end">
@@ -38,8 +47,14 @@ export const FormFieldHeader = memo(function FormFieldHeader(props: FormFieldHea
       </Box>
 
       {presence && presence.length > 0 && (
-        <Box>
+        <Box flex="none">
           <FieldPresence maxAvatars={4} presence={presence} />
+        </Box>
+      )}
+
+      {actions && (
+        <Box flex="none" marginLeft={1}>
+          {actions}
         </Box>
       )}
     </Flex>
