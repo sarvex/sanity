@@ -60,7 +60,7 @@ function sortingStrategy(axis: Axis) {
   return axis === 'x' ? horizontalListSortingStrategy : verticalListSortingStrategy
 }
 
-function SortableList(props: ListProps) {
+const SortableList = memo(function SortableList(props: ListProps) {
   const {items, axis, onItemMove, onItemMoveStart, onItemMoveEnd, children, ...rest} = props
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, SENSOR_OPTIONS))
@@ -99,9 +99,9 @@ function SortableList(props: ListProps) {
       </SortableContext>
     </DndContext>
   )
-}
+})
 
-function SortableListItem(props: ItemProps) {
+const SortableListItem = memo(function SortableListItem(props: ItemProps) {
   const {id, children, disableTransition} = props
   const {setNodeRef, transform, transition, active} = useSortable({
     id,
@@ -129,7 +129,7 @@ function SortableListItem(props: ItemProps) {
       {children}
     </ListItem>
   )
-}
+})
 
 interface ListProps extends ComponentProps<typeof Grid> {
   sortable?: boolean
@@ -141,7 +141,7 @@ interface ListProps extends ComponentProps<typeof Grid> {
   children?: React.ReactNode
 }
 
-export function List(props: ListProps) {
+export const List = memo(function List(props: ListProps) {
   const {onItemMove, onItemMoveEnd, onItemMoveStart, sortable, ...rest} = props
 
   // Note: this is here to make SortableList API compatible with onItemMove
@@ -162,7 +162,7 @@ export function List(props: ListProps) {
   ) : (
     <Grid {...rest} />
   )
-}
+})
 
 interface ItemProps {
   id: string
