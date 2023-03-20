@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-handler-names */
 import {Card, Stack, Text} from '@sanity/ui'
-import React, {useCallback, useMemo} from 'react'
+import React, {memo, useCallback, useMemo} from 'react'
 import {Item, List} from '../../common/list'
 import {ArrayOfObjectsInputProps, ObjectItem} from '../../../../types'
 import {ArrayOfObjectsItem} from '../../../../members'
@@ -12,7 +12,9 @@ import {ErrorItem} from './ErrorItem'
 
 const EMPTY: [] = []
 
-export function ListArrayInput<Item extends ObjectItem>(props: ArrayOfObjectsInputProps<Item>) {
+export const ListArrayInput = memo(function ListArrayInput<Item extends ObjectItem>(
+  props: ArrayOfObjectsInputProps<Item>
+) {
   const {
     schemaType,
     onChange,
@@ -110,4 +112,4 @@ export function ListArrayInput<Item extends ObjectItem>(props: ArrayOfObjectsInp
       />
     </Stack>
   )
-}
+})
