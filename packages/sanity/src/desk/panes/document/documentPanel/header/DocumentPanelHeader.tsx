@@ -3,7 +3,7 @@ import {Button, Inline} from '@sanity/ui'
 import {negate} from 'lodash'
 import React, {createElement, memo, forwardRef, useMemo} from 'react'
 import {PaneMenuItem} from '../../../../types'
-import {PaneHeader, PaneContextMenuButton, usePaneRouter} from '../../../../components'
+import {PaneHeader, PaneContextMenuButton, usePaneRouter, usePane} from '../../../../components'
 import {TimelineMenu} from '../../timeline'
 import {useDocumentPane} from '../../useDocumentPane'
 import {useDeskTool} from '../../../../useDeskTool'
@@ -43,6 +43,9 @@ export const DocumentPanelHeader = memo(
     const showTabs = views.length > 1
     const showVersionMenu = features.reviewChanges
 
+    const {isLast} = usePane()
+    const tabIndex = isLast ? -1 : 0
+
     // there are three kinds of buttons possible:
     //
     // 1. split pane - creates a new split pane
@@ -69,6 +72,7 @@ export const DocumentPanelHeader = memo(
         loading={!ready}
         title={<DocumentHeaderTitle />}
         tabs={showTabs && <DocumentHeaderTabs />}
+        tabIndex={tabIndex}
         backButton={
           features.backButton &&
           index > 0 && <Button as={BackLink} data-as="a" icon={ArrowLeftIcon} mode="bleed" />
