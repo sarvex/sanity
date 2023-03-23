@@ -131,15 +131,7 @@ export function ArrayOfPrimitivesField(props: {
   renderItem: RenderArrayOfPrimitivesItemCallback
   renderPreview: RenderPreviewCallback
 }) {
-  const {
-    onPathBlur,
-    onPathFocus,
-    onChange,
-    onPathOpen,
-    onSetPathCollapsed,
-    onSetFieldSetCollapsed,
-    onFieldGroupSelect,
-  } = useFormCallbacks()
+  const {onPathBlur, onPathFocus, onChange, onSetPathCollapsed} = useFormCallbacks()
   const {member, renderField, renderInput, renderItem, renderPreview} = props
 
   const focusRef = useRef<Element & {focus: () => void}>()
@@ -413,17 +405,5 @@ export function ArrayOfPrimitivesField(props: {
     inputProps,
   ])
 
-  return (
-    <FormCallbacksProvider
-      onFieldGroupSelect={onFieldGroupSelect}
-      onChange={handleChange}
-      onPathOpen={onPathOpen}
-      onSetFieldSetCollapsed={onSetFieldSetCollapsed}
-      onSetPathCollapsed={onSetPathCollapsed}
-      onPathBlur={onPathBlur}
-      onPathFocus={onPathFocus}
-    >
-      {useMemo(() => renderField(fieldProps as FIXME), [fieldProps, renderField])}
-    </FormCallbacksProvider>
-  )
+  return useMemo(() => renderField(fieldProps as FIXME), [fieldProps, renderField])
 }

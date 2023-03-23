@@ -15,6 +15,7 @@ import {DocumentPaneProviderProps} from './types'
 import {usePreviewUrl} from './usePreviewUrl'
 import {getInitialValueTemplateOpts} from './getInitialValueTemplateOpts'
 import {
+  getSetIfMissingPatches,
   DEFAULT_STUDIO_CLIENT_OPTIONS,
   DocumentPresence,
   PatchEvent,
@@ -210,8 +211,18 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     throw new Error('Nope')
   })
 
+  const valueRef = useRef<SanityDocumentLike>()
+  valueRef.current = value
   patchRef.current = (event: PatchEvent) => {
-    patch.execute(toMutationPatches(event.patches), initialValue.value)
+    patch.execute(
+      toMutationPatches(
+        event.patches.flatMap((p) => [
+          ...getSetIfMissingPatches(schemaType!, p.path, valueRef.current),
+          p,
+        ])
+      ),
+      initialValue.value
+    )
   }
 
   const handleChange = useCallback((event: any) => patchRef.current(event), [])

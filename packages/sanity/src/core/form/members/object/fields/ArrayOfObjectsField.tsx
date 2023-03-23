@@ -16,7 +16,7 @@ import {
   RenderPreviewCallback,
   UploadEvent,
 } from '../../../types'
-import {FormCallbacksProvider, useFormCallbacks} from '../../../studio/contexts/FormCallbacks'
+import {useFormCallbacks} from '../../../studio/contexts/FormCallbacks'
 import {useDidUpdate} from '../../../hooks/useDidUpdate'
 import {insert, PatchArg, PatchEvent, setIfMissing, unset} from '../../../patch'
 import {ensureKey} from '../../../utils/ensureKey'
@@ -43,15 +43,7 @@ export function ArrayOfObjectsField(props: {
   renderItem: RenderArrayOfObjectsItemCallback
   renderPreview: RenderPreviewCallback
 }) {
-  const {
-    onPathBlur,
-    onPathFocus,
-    onChange,
-    onSetPathCollapsed,
-    onSetFieldSetCollapsed,
-    onPathOpen,
-    onFieldGroupSelect,
-  } = useFormCallbacks()
+  const {onPathBlur, onPathFocus, onChange, onSetPathCollapsed, onPathOpen} = useFormCallbacks()
 
   const {member, renderField, renderInput, renderItem, renderPreview} = props
   const focusRef = useRef<Element & {focus: () => void}>()
@@ -97,21 +89,21 @@ export function ArrayOfObjectsField(props: {
         (patch) => patch.type === 'unset' && patch.path.length === 1
       )
 
-      if (isRemovingLastItem) {
-        // apply the patch to the current value
-        const result = applyAll(member.field.value || [], patches)
-
-        // if the result is an empty array
-        if (Array.isArray(result) && !result.length) {
-          // then unset the array field
-          onChange(PatchEvent.from(unset([member.name])))
-          return
-        }
-      }
+      // if (isRemovingLastItem) {
+      //   // apply the patch to the current value
+      //   const result = applyAll(member.field.value || [], patches)
+      //
+      //   // if the result is an empty array
+      //   if (Array.isArray(result) && !result.length) {
+      //     // then unset the array field
+      //     onChange(PatchEvent.from(unset([member.name])))
+      //     return
+      //   }
+      // }
       // otherwise apply the patch
-      onChange(PatchEvent.from(event).prepend(setIfMissing([])).prefixAll(member.name))
+      onChange(PatchEvent.from(event).withPath(member.field.path))
     },
-    [onChange, member.name, member.field.value]
+    [onChange, member.field.path]
   )
   const resolveInitialValue = useResolveInitialValueForType()
 
@@ -436,17 +428,5 @@ export function ArrayOfObjectsField(props: {
     inputProps,
   ])
 
-  return (
-    <FormCallbacksProvider
-      onFieldGroupSelect={onFieldGroupSelect}
-      onChange={handleChange}
-      onSetFieldSetCollapsed={onSetFieldSetCollapsed}
-      onSetPathCollapsed={onSetPathCollapsed}
-      onPathOpen={onPathOpen}
-      onPathBlur={onPathBlur}
-      onPathFocus={onPathFocus}
-    >
-      {useMemo(() => renderField(fieldProps), [fieldProps, renderField])}
-    </FormCallbacksProvider>
-  )
+  return useMemo(() => renderField(fieldProps), [fieldProps, renderField])
 }
