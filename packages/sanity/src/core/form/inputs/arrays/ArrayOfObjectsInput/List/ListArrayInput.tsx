@@ -2,6 +2,7 @@
 import {Card, Stack, Text, useBoundaryElement} from '@sanity/ui'
 import {useVirtualizer} from '@tanstack/react-virtual'
 import React, {useCallback, useMemo, useRef} from 'react'
+import {isEqual} from 'lodash'
 import {Item, List} from '../../common/list'
 import {ArrayOfObjectsInputProps, ObjectItem} from '../../../../types'
 import {ArrayOfObjectsItem} from '../../../../members'
@@ -10,6 +11,7 @@ import {createProtoArrayValue} from '../createProtoArrayValue'
 import {UploadTargetCard} from '../../common/UploadTargetCard'
 import {ArrayOfObjectsFunctions} from '../ArrayOfObjectsFunctions'
 import {ErrorItem} from './ErrorItem'
+import {useMemoCompare} from './useMemoCompare'
 
 const EMPTY: [] = []
 
@@ -82,7 +84,12 @@ export function ListArrayInput<Item extends ObjectItem>(props: ArrayOfObjectsInp
   const items = virtualizer.getVirtualItems()
 
   const sortable = schemaType.options?.sortable !== false
-  const memberKeys = useMemo(() => members.map((member) => member.key), [members])
+
+  const memberKeys = useMemoCompare(
+    useMemo(() => members.map((member) => member.key), [members]),
+    isEqual
+  )
+
   return (
     <Stack space={3} ref={ref}>
       <UploadTargetCard
