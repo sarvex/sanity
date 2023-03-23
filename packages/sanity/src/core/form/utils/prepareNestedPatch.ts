@@ -16,6 +16,7 @@ import {createProtoValue} from './createProtoValue'
  * @param schemaType - the document type
  * @param path - the node path
  * @param value - the current document value
+ * @internal
  */
 export function getSetIfMissingPatches(schemaType: SchemaType, path: Path, value: unknown) {
   return _getSetIfMissingPatches(schemaType, path, value, [])
