@@ -10,20 +10,25 @@ export const fieldValidationInferReproDoc = {
   name: 'fieldValidationInferReproDoc',
   type: 'document',
   title: 'FieldValidationRepro',
+  fieldsets: [{name: 'fieldset', title: 'fieldset', options: {collapsed: true}}],
   fields: [
     {
-      name: 'withValidation',
-      type: 'someObjectType',
-      title: 'Field of someObjectType with validation',
-      description: 'First field should be required',
-      validation: (Rule) =>
-        Rule.fields({
-          first: (fieldRule) => fieldRule.required(),
-        }),
+      name: 'withodutValidation',
+      type: 'string',
+      fieldset: 'fieldset',
+      title: 'Field of someObjectType without validation',
+      description: 'First field should not be required',
     },
     {
-      name: 'withoutValidation',
-      type: 'someObjectType',
+      name: 'withoutValidfation',
+      type: 'string',
+      fieldset: 'fieldset',
+      title: 'Field of someObjectType without validation',
+      description: 'First field should not be required',
+    },
+    {
+      name: 'withoutValisdation',
+      type: 'string',
       title: 'Field of someObjectType without validation',
       description: 'First field should not be required',
     },

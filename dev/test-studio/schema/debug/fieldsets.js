@@ -105,11 +105,11 @@ export default {
           title: 'Twitter',
           type: 'string',
           fieldset: 'social',
-          validation: (Rule) => Rule.required(),
         },
         {
           name: 'instagram',
           title: 'Instagram',
+          validation: (Rule) => Rule.required(),
           type: 'string',
           fieldset: 'social',
           group: ['instagram'],
