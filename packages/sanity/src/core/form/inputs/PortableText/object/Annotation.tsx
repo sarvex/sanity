@@ -1,9 +1,18 @@
 import {PortableTextEditor, usePortableTextEditor} from '@sanity/portable-text-editor'
 import {ObjectSchemaType, Path, PortableTextObject} from '@sanity/types'
 import {Tooltip} from '@sanity/ui'
-import React, {ComponentType, useCallback, useMemo} from 'react'
+import React, {useCallback, useMemo} from 'react'
 import {pathToString} from '../../../../field'
-import {BlockAnnotationProps, RenderCustomMarkers} from '../../../types'
+import {
+  BlockAnnotationProps,
+  RenderAnnotationCallback,
+  RenderArrayOfObjectsItemCallback,
+  RenderBlockCallback,
+  RenderCustomMarkers,
+  RenderFieldCallback,
+  RenderInputCallback,
+  RenderPreviewCallback,
+} from '../../../types'
 import {DefaultMarkers} from '../_legacyDefaultParts/Markers'
 import {useFormBuilder} from '../../../useFormBuilder'
 import {useMemberValidation} from '../hooks/useMemberValidation'
@@ -24,7 +33,15 @@ interface AnnotationProps {
   onPathFocus: (path: Path) => void
   path: Path
   readOnly?: boolean
+  relativePath: Path
+  renderAnnotation: RenderAnnotationCallback
+  renderBlock: RenderBlockCallback
   renderCustomMarkers?: RenderCustomMarkers
+  renderField: RenderFieldCallback
+  renderInlineBlock: RenderBlockCallback
+  renderInput: RenderInputCallback
+  renderItem: RenderArrayOfObjectsItemCallback
+  renderPreview: RenderPreviewCallback
   selected: boolean
   schemaType: ObjectSchemaType
   value: PortableTextObject
@@ -40,7 +57,15 @@ export function Annotation(props: AnnotationProps) {
     onPathFocus,
     path,
     readOnly,
+    relativePath,
+    renderAnnotation,
+    renderBlock,
     renderCustomMarkers,
+    renderField,
+    renderInlineBlock,
+    renderInput,
+    renderItem,
+    renderPreview,
     schemaType,
     selected,
     value,
@@ -116,6 +141,13 @@ export function Annotation(props: AnnotationProps) {
       path: memberItem?.node.path || path,
       presence,
       readOnly: Boolean(readOnly),
+      renderAnnotation,
+      renderBlock,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderPreview,
+      renderItem,
       renderDefault: DefaultAnnotationComponent,
       schemaType,
       selected,
@@ -131,7 +163,8 @@ export function Annotation(props: AnnotationProps) {
       isOpen,
       markers,
       markersToolTip,
-      memberItem,
+      memberItem?.elementRef,
+      memberItem?.node.path,
       onClose,
       onOpen,
       onPathFocus,
@@ -139,6 +172,13 @@ export function Annotation(props: AnnotationProps) {
       path,
       presence,
       readOnly,
+      renderAnnotation,
+      renderBlock,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
+      renderPreview,
       schemaType,
       selected,
       text,
@@ -147,21 +187,13 @@ export function Annotation(props: AnnotationProps) {
     ]
   )
 
-  const CustomComponent = schemaType.components?.annotation as
-    | ComponentType<BlockAnnotationProps>
-    | undefined
-
   return useMemo(
     () => (
       <span ref={memberItem?.elementRef} style={debugRender()}>
-        {CustomComponent ? (
-          <CustomComponent {...componentProps} />
-        ) : (
-          <DefaultAnnotationComponent {...componentProps} />
-        )}
+        {renderAnnotation(componentProps)}
       </span>
     ),
-    [CustomComponent, componentProps, memberItem?.elementRef]
+    [componentProps, memberItem?.elementRef, renderAnnotation]
   )
 }
 

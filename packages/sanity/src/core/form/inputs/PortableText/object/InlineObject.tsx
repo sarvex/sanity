@@ -6,7 +6,16 @@ import {
 import {ObjectSchemaType, Path, PortableTextBlock, PortableTextChild} from '@sanity/types'
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {Tooltip} from '@sanity/ui'
-import {BlockProps, RenderCustomMarkers, RenderPreviewCallback} from '../../../types'
+import {
+  BlockProps,
+  RenderAnnotationCallback,
+  RenderArrayOfObjectsItemCallback,
+  RenderBlockCallback,
+  RenderCustomMarkers,
+  RenderFieldCallback,
+  RenderInputCallback,
+  RenderPreviewCallback,
+} from '../../../types'
 import {useFormBuilder} from '../../../useFormBuilder'
 import {usePortableTextMarkers} from '../hooks/usePortableTextMarkers'
 import {useMemberValidation} from '../hooks/useMemberValidation'
@@ -26,7 +35,13 @@ interface InlineObjectProps {
   path: Path
   readOnly?: boolean
   relativePath: Path
+  renderAnnotation: RenderAnnotationCallback
+  renderBlock: RenderBlockCallback
   renderCustomMarkers?: RenderCustomMarkers
+  renderField: RenderFieldCallback
+  renderInlineBlock: RenderBlockCallback
+  renderInput: RenderInputCallback
+  renderItem: RenderArrayOfObjectsItemCallback
   renderPreview: RenderPreviewCallback
   schemaType: ObjectSchemaType
   selected: boolean
@@ -43,7 +58,13 @@ export const InlineObject = (props: InlineObjectProps) => {
     path,
     readOnly,
     relativePath,
+    renderAnnotation,
+    renderBlock,
     renderCustomMarkers,
+    renderField,
+    renderItem,
+    renderInlineBlock,
+    renderInput,
     renderPreview,
     schemaType,
     selected,
@@ -55,7 +76,6 @@ export const InlineObject = (props: InlineObjectProps) => {
   const memberItem = usePortableTextMemberItem(pathToString(path))
   const {validation, hasError, hasInfo, hasWarning} = useMemberValidation(memberItem?.node)
   const parentSchemaType = editor.schemaTypes.block
-  const CustomComponent = schemaType.components?.inlineBlock
   const hasMarkers = markers.length > 0
 
   const onRemove = useCallback(() => {
@@ -81,7 +101,7 @@ export const InlineObject = (props: InlineObjectProps) => {
       ? memberItem?.node.presence || EMPTY_ARRAY
       : EMPTY_ARRAY
 
-  const componentProps: BlockProps | undefined = useMemo(
+  const componentProps: BlockProps = useMemo(
     () => ({
       __unstable_boundaryElement: boundaryElement || undefined,
       __unstable_referenceElement: memberItem?.elementRef?.current || undefined,
@@ -98,7 +118,13 @@ export const InlineObject = (props: InlineObjectProps) => {
       path: memberItem?.member.item.path || EMPTY_ARRAY,
       presence,
       readOnly: Boolean(readOnly),
+      renderAnnotation,
+      renderBlock,
       renderDefault: DefaultInlineObjectComponent,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
       renderPreview,
       schemaType,
       selected,
@@ -111,7 +137,8 @@ export const InlineObject = (props: InlineObjectProps) => {
       input,
       isOpen,
       markers,
-      memberItem,
+      memberItem?.elementRef,
+      memberItem?.member,
       onItemClose,
       onOpen,
       onPathFocus,
@@ -119,6 +146,12 @@ export const InlineObject = (props: InlineObjectProps) => {
       parentSchemaType,
       presence,
       readOnly,
+      renderAnnotation,
+      renderBlock,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
       renderPreview,
       schemaType,
       selected,
@@ -154,19 +187,11 @@ export const InlineObject = (props: InlineObjectProps) => {
           content={toolTipContent}
         >
           {/* This relative span must be here for the ToolTip to properly show */}
-          <span style={{position: 'relative'}}>
-            {(componentProps &&
-              (CustomComponent ? (
-                <CustomComponent {...componentProps} />
-              ) : (
-                <DefaultInlineObjectComponent {...componentProps} />
-              ))) ||
-              null}
-          </span>
+          <span style={{position: 'relative'}}>{renderInlineBlock(componentProps)}</span>
         </Tooltip>
       </span>
     ),
-    [CustomComponent, componentProps, memberItem?.elementRef, toolTipContent, tooltipEnabled]
+    [componentProps, memberItem?.elementRef, renderInlineBlock, toolTipContent, tooltipEnabled]
   )
 }
 

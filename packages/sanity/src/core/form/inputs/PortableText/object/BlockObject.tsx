@@ -6,9 +6,18 @@ import {
 } from '@sanity/portable-text-editor'
 import {ObjectSchemaType, Path, PortableTextBlock} from '@sanity/types'
 import {Tooltip, Flex, ResponsivePaddingProps, Box} from '@sanity/ui'
-import React, {ComponentType, PropsWithChildren, useCallback, useMemo, useState} from 'react'
+import React, {PropsWithChildren, useCallback, useMemo, useState} from 'react'
 import {PatchArg} from '../../../patch'
-import {BlockProps, RenderCustomMarkers, RenderPreviewCallback} from '../../../types'
+import {
+  BlockProps,
+  RenderAnnotationCallback,
+  RenderArrayOfObjectsItemCallback,
+  RenderBlockCallback,
+  RenderCustomMarkers,
+  RenderFieldCallback,
+  RenderInputCallback,
+  RenderPreviewCallback,
+} from '../../../types'
 import {RenderBlockActionsCallback} from '../types'
 import {BlockActions} from '../BlockActions'
 import {ReviewChangesHighlightBlock, StyledChangeIndicatorWithProvidedFullPath} from '../_common'
@@ -44,8 +53,14 @@ interface BlockObjectProps extends PropsWithChildren {
   path: Path
   readOnly?: boolean
   relativePath: Path
+  renderAnnotation: RenderAnnotationCallback
+  renderBlock: RenderBlockCallback
   renderBlockActions?: RenderBlockActionsCallback
   renderCustomMarkers?: RenderCustomMarkers
+  renderField: RenderFieldCallback
+  renderInlineBlock: RenderBlockCallback
+  renderInput: RenderInputCallback
+  renderItem: RenderArrayOfObjectsItemCallback
   renderPreview: RenderPreviewCallback
   schemaType: ObjectSchemaType
   selected: boolean
@@ -54,21 +69,27 @@ interface BlockObjectProps extends PropsWithChildren {
 
 export function BlockObject(props: BlockObjectProps) {
   const {
+    boundaryElement,
     focused,
     isFullscreen,
     onChange,
-    onItemOpen,
     onItemClose,
+    onItemOpen,
     onPathFocus,
     path,
     readOnly,
     relativePath,
+    renderAnnotation,
+    renderBlock,
     renderBlockActions,
     renderCustomMarkers,
+    renderField,
+    renderInlineBlock,
+    renderInput,
+    renderItem,
     renderPreview,
-    boundaryElement,
-    selected,
     schemaType,
+    selected,
     value,
   } = props
   const {Markers} = useFormBuilder().__internal.components
@@ -148,7 +169,6 @@ export function BlockObject(props: BlockObjectProps) {
   const isOpen = Boolean(memberItem?.member.open)
   const input = memberItem?.input
 
-  const CustomComponent = schemaType.components?.block as ComponentType<BlockProps> | undefined
   const componentProps: BlockProps = useMemo(
     () => ({
       __unstable_boundaryElement: boundaryElement || undefined,
@@ -165,7 +185,13 @@ export function BlockObject(props: BlockObjectProps) {
       path: memberItem?.node.path || EMPTY_ARRAY,
       presence,
       readOnly: Boolean(readOnly),
+      renderAnnotation,
+      renderBlock,
       renderDefault: DefaultBlockObjectComponent,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
       renderPreview,
       schemaType,
       selected,
@@ -187,6 +213,12 @@ export function BlockObject(props: BlockObjectProps) {
       parentSchemaType,
       presence,
       readOnly,
+      renderAnnotation,
+      renderBlock,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
       renderPreview,
       schemaType,
       selected,
@@ -210,11 +242,7 @@ export function BlockObject(props: BlockObjectProps) {
               content={toolTipContent}
             >
               <PreviewContainer {...innerPaddingProps}>
-                {CustomComponent ? (
-                  <CustomComponent {...componentProps} />
-                ) : (
-                  <DefaultBlockObjectComponent {...componentProps} />
-                )}
+                {renderBlock(componentProps)}
               </PreviewContainer>
             </Tooltip>
             <BlockActionsOuter marginRight={1}>
@@ -250,7 +278,6 @@ export function BlockObject(props: BlockObjectProps) {
       </Box>
     ),
     [
-      CustomComponent,
       componentProps,
       focused,
       handleMouseOut,
@@ -260,6 +287,7 @@ export function BlockObject(props: BlockObjectProps) {
       memberItem,
       onChange,
       readOnly,
+      renderBlock,
       renderBlockActions,
       reviewChangesHovered,
       toolTipContent,

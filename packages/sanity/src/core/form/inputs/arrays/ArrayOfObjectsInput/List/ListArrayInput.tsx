@@ -16,21 +16,24 @@ const EMPTY: [] = []
 
 export function ListArrayInput<Item extends ObjectItem>(props: ArrayOfObjectsInputProps<Item>) {
   const {
-    schemaType,
-    onChange,
-    value = EMPTY,
-    readOnly,
-    members,
+    arrayFunctions: ArrayFunctions = ArrayOfObjectsFunctions,
     elementProps,
-    resolveUploader,
+    members,
+    onChange,
     onInsert,
     onItemMove,
     onUpload,
-    renderPreview,
+    readOnly,
+    renderAnnotation,
+    renderBlock,
     renderField,
-    renderItem,
+    renderInlineBlock,
     renderInput,
-    arrayFunctions: ArrayFunctions = ArrayOfObjectsFunctions,
+    renderItem,
+    renderPreview,
+    resolveUploader,
+    schemaType,
+    value = EMPTY,
   } = props
 
   const handlePrepend = useCallback(
@@ -85,9 +88,12 @@ export function ListArrayInput<Item extends ObjectItem>(props: ArrayOfObjectsInp
                     {member.kind === 'item' && (
                       <ArrayOfObjectsItem
                         member={member}
-                        renderItem={renderItem}
+                        renderAnnotation={renderAnnotation}
+                        renderBlock={renderBlock}
                         renderField={renderField}
+                        renderInlineBlock={renderInlineBlock}
                         renderInput={renderInput}
+                        renderItem={renderItem}
                         renderPreview={renderPreview}
                       />
                     )}

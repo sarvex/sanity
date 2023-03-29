@@ -5,8 +5,8 @@ import {
   OnPasteFn,
   usePortableTextEditor,
   HotkeyOptions,
-  BlockRenderProps,
-  BlockChildRenderProps,
+  BlockRenderProps as EditorBlockRenderProps,
+  BlockChildRenderProps as EditorChildRenderProps,
   BlockAnnotationRenderProps,
 } from '@sanity/portable-text-editor'
 import {Path, PortableTextBlock, PortableTextTextBlock} from '@sanity/types'
@@ -15,9 +15,10 @@ import {ArrayOfObjectsInputProps, RenderCustomMarkers} from '../../types'
 import {ActivateOnFocus} from '../../components/ActivateOnFocus/ActivateOnFocus'
 import {EMPTY_ARRAY} from '../../../util'
 import {ChangeIndicator} from '../../../changeIndicators'
+import {Annotation} from './object/Annotation'
 import {BlockObject} from './object/BlockObject'
 import {InlineObject} from './object/InlineObject'
-import {Annotation, TextBlock} from './text'
+import {TextBlock} from './text'
 import {RenderBlockActionsCallback} from './types'
 import {Editor} from './Editor'
 import {ExpandedLayer, Root} from './Compositor.styles'
@@ -62,8 +63,14 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
     onToggleFullscreen,
     path,
     readOnly,
+    renderAnnotation,
+    renderBlock,
     renderBlockActions,
     renderCustomMarkers,
+    renderField,
+    renderInlineBlock,
+    renderInput,
+    renderItem,
     renderPreview,
     value,
   } = props
@@ -110,7 +117,7 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
   const [portalElement, setPortalElement] = useState<HTMLDivElement | null>(null)
 
   const renderTextBlock = useCallback(
-    (blockProps: BlockRenderProps) => {
+    (blockProps: EditorBlockRenderProps) => {
       const {
         children,
         focused: blockFocused,
@@ -131,9 +138,15 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
           onPathFocus={onPathFocus}
           path={path.concat(blockPath)}
           readOnly={readOnly}
+          renderAnnotation={renderAnnotation}
+          renderField={renderField}
+          renderInlineBlock={renderInlineBlock}
+          renderInput={renderInput}
+          renderItem={renderItem}
           renderBlockActions={_renderBlockActions}
           renderCustomMarkers={_renderCustomMarkers}
           renderPreview={renderPreview}
+          renderBlock={renderBlock}
           schemaType={blockSchemaType}
           selected={selected}
           value={block as PortableTextTextBlock}
@@ -154,12 +167,18 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
       onPathFocus,
       path,
       readOnly,
+      renderAnnotation,
+      renderBlock,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
       renderPreview,
     ]
   )
 
   const renderObjectBlock = useCallback(
-    (blockProps: BlockRenderProps) => {
+    (blockProps: EditorBlockRenderProps) => {
       const {
         focused: blockFocused,
         path: blockPath,
@@ -180,8 +199,14 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
           path={path.concat(blockPath)}
           readOnly={readOnly}
           relativePath={blockPath}
+          renderAnnotation={renderAnnotation}
+          renderBlock={renderBlock}
           renderBlockActions={_renderBlockActions}
           renderCustomMarkers={_renderCustomMarkers}
+          renderField={renderField}
+          renderInlineBlock={renderInlineBlock}
+          renderInput={renderInput}
+          renderItem={renderItem}
           renderPreview={renderPreview}
           schemaType={blockSchemaType}
           selected={blockSelected}
@@ -190,8 +215,6 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
       )
     },
     [
-      _renderBlockActions,
-      _renderCustomMarkers,
       boundaryElement,
       isFullscreen,
       onChange,
@@ -200,13 +223,22 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
       onItemRemove,
       onPathFocus,
       path,
-      renderPreview,
       readOnly,
+      renderAnnotation,
+      renderBlock,
+      _renderBlockActions,
+      _renderCustomMarkers,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
+      renderPreview,
     ]
   )
 
-  const renderBlock = useCallback(
-    (blockProps: BlockRenderProps) => {
+  // This is the function that is sent to PortableTextEditor's renderBlock callback
+  const editorRenderBlock = useCallback(
+    (blockProps: EditorBlockRenderProps) => {
       const {value: block} = blockProps
       const isTextBlock = block._type === editor.schemaTypes.block.name
       if (isTextBlock) {
@@ -217,8 +249,9 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
     [editor.schemaTypes.block.name, renderObjectBlock, renderTextBlock]
   )
 
-  const renderChild = useCallback(
-    (childProps: BlockChildRenderProps) => {
+  // This is the function that is sent to PortableTextEditor's renderChild callback
+  const editorRenderChild = useCallback(
+    (childProps: EditorChildRenderProps) => {
       const {
         children,
         focused: childFocused,
@@ -241,7 +274,13 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
           path={path.concat(childPath)}
           readOnly={readOnly}
           relativePath={childPath}
+          renderAnnotation={renderAnnotation}
+          renderBlock={renderBlock}
           renderCustomMarkers={renderCustomMarkers}
+          renderField={renderField}
+          renderInlineBlock={renderInlineBlock}
+          renderInput={renderInput}
+          renderItem={renderItem}
           renderPreview={renderPreview}
           schemaType={childSchemaType}
           selected={selected}
@@ -250,19 +289,25 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
       )
     },
     [
-      boundaryElement,
       editor.schemaTypes.span.name,
+      boundaryElement,
       onItemClose,
       onItemOpen,
       onPathFocus,
       path,
       readOnly,
+      renderAnnotation,
+      renderBlock,
       renderCustomMarkers,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
       renderPreview,
     ]
   )
 
-  const renderAnnotation = useCallback(
+  const editorRenderAnnotation = useCallback(
     (annotationProps: BlockAnnotationRenderProps) => {
       const {
         children,
@@ -281,7 +326,15 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
           onPathFocus={onPathFocus}
           path={path.concat(aPath)}
           readOnly={readOnly}
+          relativePath={aPath}
+          renderAnnotation={renderAnnotation}
+          renderBlock={renderBlock}
           renderCustomMarkers={renderCustomMarkers}
+          renderField={renderField}
+          renderInlineBlock={renderInlineBlock}
+          renderInput={renderInput}
+          renderItem={renderItem}
+          renderPreview={renderPreview}
           schemaType={aSchemaType}
           selected={selected}
           value={aValue}
@@ -307,9 +360,9 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
         onToggleFullscreen={handleToggleFullscreen}
         path={path}
         readOnly={readOnly}
-        renderAnnotation={renderAnnotation}
-        renderBlock={renderBlock}
-        renderChild={renderChild}
+        renderAnnotation={editorRenderAnnotation}
+        renderBlock={editorRenderBlock}
+        renderChild={editorRenderChild}
         setPortalElement={setPortalElement}
         scrollElement={boundaryElement}
         setScrollElement={setBoundaryElement}
@@ -318,7 +371,11 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
 
     // Keep only stable ones here!
     [
+      boundaryElement,
       editorHotkeys,
+      editorRenderAnnotation,
+      editorRenderBlock,
+      editorRenderChild,
       handleToggleFullscreen,
       hasFocus,
       initialSelection,
@@ -329,10 +386,6 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
       onPaste,
       path,
       readOnly,
-      renderAnnotation,
-      renderBlock,
-      renderChild,
-      boundaryElement,
     ]
   )
 

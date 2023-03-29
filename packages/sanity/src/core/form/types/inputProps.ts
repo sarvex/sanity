@@ -27,8 +27,10 @@ import {
 import {UploaderResolver} from '../studio'
 import {FormFieldGroup} from '../store'
 import {
+  RenderAnnotationCallback,
   RenderArrayOfObjectsItemCallback,
   RenderArrayOfPrimitivesItemCallback,
+  RenderBlockCallback,
   RenderFieldCallback,
   RenderInputCallback,
   RenderPreviewCallback,
@@ -78,10 +80,19 @@ export interface ObjectInputProps<
   onFieldClose: (fieldName: string) => void
 
   /** @beta */
+  renderAnnotation: RenderAnnotationCallback
+
+  /** @beta */
+  renderBlock: RenderBlockCallback
+
+  /** @beta */
   renderInput: RenderInputCallback
 
   /** @beta */
   renderField: RenderFieldCallback
+
+  /** @beta */
+  renderInlineBlock: RenderBlockCallback
 
   /** @beta */
   renderItem: RenderArrayOfObjectsItemCallback
@@ -152,7 +163,16 @@ export interface ArrayOfObjectsInputProps<
   onItemClose: () => void
 
   /** @beta */
+  renderAnnotation: RenderAnnotationCallback
+
+  /** @beta */
+  renderBlock: RenderBlockCallback
+
+  /** @beta */
   renderField: RenderFieldCallback
+
+  /** @beta */
+  renderInlineBlock: RenderBlockCallback
 
   /** @beta */
   renderInput: RenderInputCallback
@@ -208,6 +228,15 @@ export interface ArrayOfPrimitivesInputProps<
 
   /** @beta */
   onIndexFocus: (index: number) => void
+
+  /** @beta */
+  renderAnnotation: RenderAnnotationCallback
+
+  /** @beta */
+  renderBlock: RenderBlockCallback
+
+  /** @beta */
+  renderInlineBlock: RenderBlockCallback
 
   /** @beta */
   renderInput: RenderInputCallback
