@@ -76,7 +76,10 @@ export const InlineObject = (props: InlineObjectProps) => {
 
   const isOpen = Boolean(memberItem?.member.open)
   const input = memberItem?.input
-  const presence = memberItem?.node.presence || EMPTY_ARRAY
+  const presence =
+    (memberItem?.node.presence.length || -1) > 0
+      ? memberItem?.node.presence || EMPTY_ARRAY
+      : EMPTY_ARRAY
 
   const componentProps: BlockProps | undefined = useMemo(
     () => ({
