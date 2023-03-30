@@ -3,12 +3,14 @@ import {castArray} from 'lodash'
 import {
   ArrayOfObjectsFormNode,
   ArrayOfObjectsItemMember,
+  BaseFormNode,
   FieldMember,
   FieldSetMember,
   ObjectFormNode,
 } from '../types'
-import {isMemberArrayOfObjects} from '../../members/object/fields/asserters'
+import {isMemberArrayOfObjects, isMemberObject} from '../../members/object/fields/asserters'
 import {ALL_FIELDS_GROUP} from '../constants'
+import {isArrayOfObjectsFormNode, isObjectFormNode} from '../types/asserters'
 
 /** @internal */
 export interface ExpandPathOperation {
@@ -42,11 +44,22 @@ export type ExpandOperation =
  *
  * @internal
  */
-export function getExpandOperations(state: ObjectFormNode, path: Path): ExpandOperation[] {
-  // start at the root and make sure all groups/paths are expanded/activated along the way
-  const [fieldName, ...rest] = path
+export function getExpandOperations(node: BaseFormNode, path: Path) {
+  if (isObjectFormNode(node)) {
+    return expandObjectPath(node, path)
+  }
+  if (isArrayOfObjectsFormNode(node)) {
+    return expandArrayPath(node, path)
+  }
+  return []
+}
 
-  const fieldsetMember = state.members.find(
+function expandObjectPath(node: ObjectFormNode, path: Path): ExpandOperation[] {
+  // extract the field name for the current level we're looking
+  const [fieldName, ...tail] = path
+
+  // check if we can find the field inside a fieldset
+  const fieldsetMember = node.members.find(
     (member): member is FieldSetMember =>
       member.kind === 'fieldSet' &&
       member.fieldSet.members.some(
@@ -54,57 +67,56 @@ export function getExpandOperations(state: ObjectFormNode, path: Path): ExpandOp
       )
   )
 
-  const ops: ExpandOperation[] = [{type: 'expandPath', path}]
-  if (fieldsetMember) {
-    ops.push({type: 'expandFieldSet', path: fieldsetMember.fieldSet.path})
-  }
+  // if we found the field in a fieldset we need to recurse into this fieldset's members, otherwise we can use the node's members
+  const members = fieldsetMember ? fieldsetMember.fieldSet.members : node.members
 
-  const fieldMember = state.members.find(
+  // look for the field inside the members array
+  const fieldMember = members.find(
     (member): member is FieldMember => member.kind === 'field' && member.name === fieldName
   )
 
-  const fieldMemberFieldSet = fieldMember?.field?.members?.find(
-    (member): member is FieldSetMember =>
-      member.kind === 'fieldSet' &&
-      member.fieldSet.members.some((field): field is FieldMember => field.kind === 'field')
-  )
-
-  const schemaField = state.schemaType.fields.find((field) => field.name === fieldName)
-  const selectedGroupName = state.groups.find((group) => group.selected)?.name
-  const defaultGroupName = (state.schemaType.groups || []).find((group) => group.default)?.name
+  // Group handling
+  const schemaField = node.schemaType.fields.find((field) => field.name === fieldName)
+  const selectedGroupName = node.groups.find((group) => group.selected)?.name
+  const defaultGroupName = (node.schemaType.groups || []).find((group) => group.default)?.name
   const inSelectedGroup =
     selectedGroupName &&
     (selectedGroupName === ALL_FIELDS_GROUP.name ||
       (schemaField && castArray(schemaField.group).includes(selectedGroupName)))
 
+  const ops: ExpandOperation[] = [{type: 'expandPath', path}]
+  if (fieldsetMember) {
+    // the field is inside a fieldset, make sure we expand it too
+    ops.push({type: 'expandFieldSet', path: fieldsetMember.fieldSet.path})
+  }
+
   if (!inSelectedGroup) {
     ops.push({
       type: 'setSelectedGroup',
-      path: state.path,
+      path: node.path,
       groupName: defaultGroupName || ALL_FIELDS_GROUP.name,
     })
   }
 
   if (fieldMember) {
     ops.push({type: 'expandPath', path: fieldMember.field.path})
-    //If a fieldset exists within a field, this needs to expanded
-    if (fieldMemberFieldSet) {
-      ops.push({type: 'expandFieldSet', path: fieldMemberFieldSet.fieldSet.path})
-    }
   }
 
-  if (fieldMember && fieldMember.field.members) {
-    ops.push({type: 'expandFieldSet', path: fieldMember.field.members})
-  }
-
-  if (rest.length === 0) {
+  if (tail.length === 0) {
     return ops
+  }
+
+  if (fieldMember && isMemberObject(fieldMember)) {
+    return ops.concat([
+      {type: 'expandPath', path: fieldMember.field.path},
+      ...expandObjectPath(fieldMember.field, tail),
+    ])
   }
 
   if (fieldMember && isMemberArrayOfObjects(fieldMember)) {
     return ops.concat([
       {type: 'expandPath', path: fieldMember.field.path},
-      ...expandArrayPath(fieldMember.field, rest),
+      ...expandArrayPath(fieldMember.field, tail),
     ])
   }
   return ops

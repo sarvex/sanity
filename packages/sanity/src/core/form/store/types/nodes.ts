@@ -29,7 +29,6 @@ export interface BaseFormNode<T = unknown, S extends SchemaType = SchemaType> {
   readOnly?: boolean
   focused?: boolean
   changed: boolean
-  members?: ObjectMember[]
 }
 
 /** @public */
