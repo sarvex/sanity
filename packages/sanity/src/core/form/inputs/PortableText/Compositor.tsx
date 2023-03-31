@@ -326,7 +326,6 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
           onPathFocus={onPathFocus}
           path={path.concat(aPath)}
           readOnly={readOnly}
-          relativePath={aPath}
           renderAnnotation={renderAnnotation}
           renderBlock={renderBlock}
           renderCustomMarkers={renderCustomMarkers}
@@ -343,7 +342,22 @@ export function Compositor(props: Omit<InputProps, 'schemaType' | 'arrayFunction
         </Annotation>
       )
     },
-    [boundaryElement, onItemClose, onItemOpen, onPathFocus, path, readOnly, renderCustomMarkers]
+    [
+      boundaryElement,
+      onItemClose,
+      onItemOpen,
+      onPathFocus,
+      path,
+      readOnly,
+      renderAnnotation,
+      renderBlock,
+      renderCustomMarkers,
+      renderField,
+      renderInlineBlock,
+      renderInput,
+      renderItem,
+      renderPreview,
+    ]
   )
 
   const editorNode = useMemo(
