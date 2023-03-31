@@ -79,6 +79,7 @@ export const DEBUG_FIELD_GROUP_TYPES = [
   'fieldGroupsDefault',
   'fieldGroupsMany',
   'fieldGroupsWithValidation',
+  'fieldGroupsWithFieldsetsAndValidation',
 ]
 
 export const EXTERNAL_PLUGIN_INPUT_TYPES = ['markdownTest', 'muxVideoPost']

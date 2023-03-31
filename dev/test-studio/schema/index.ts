@@ -79,6 +79,7 @@ import fieldGroups from './debug/fieldGroups'
 import fieldGroupsDefault from './debug/fieldGroupsDefault'
 import fieldGroupsMany from './debug/fieldGroupsMany'
 import fieldGroupsWithValidation from './debug/fieldGroupsWithValidation'
+import fieldGroupsWithFieldsetsAndValidation from './debug/fieldGroupsWithFieldsetsAndValidation'
 
 // Test documents with official plugin inputs
 import code from './plugins/code'
@@ -241,6 +242,7 @@ export const schemaTypes = [
   fieldGroupsDefault,
   fieldGroupsMany,
   fieldGroupsWithValidation,
+  fieldGroupsWithFieldsetsAndValidation,
   allNativeInputComponents,
   ...v3docs.types,
   ...demos3d.types,
