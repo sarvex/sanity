@@ -223,7 +223,7 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
             setSortOrder={setSortOrder}
             title={title}
             content={
-              <Box paddingX={3} paddingBottom={2}>
+              <Box paddingX={2} paddingBottom={2}>
                 <SearchCard tone="transparent" data-focus-visible={inputType === 'keyboard'}>
                   <TextInput
                     border={false}
@@ -233,7 +233,7 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
                     onChange={handleSearchChange}
                     onClear={handleClearSearch}
                     onKeyDown={handleSearchKeyDown}
-                    placeholder="Search"
+                    placeholder="Search list"
                     radius={2}
                     ref={setSearchInputElement}
                     value={searchQuery || ''}
