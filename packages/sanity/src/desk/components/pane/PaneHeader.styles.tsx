@@ -57,7 +57,7 @@ export const TabsBox = styled(Box)(({theme}: {theme: Theme}) => {
 
     & > div {
       white-space: nowrap;
-      padding: ${space[2]}px 0 ${space[2]}px ${space[3]}px;
+      padding: ${space[1]}px 0 ${space[2]}px ${space[3]}px;
       overflow: auto;
       /* Hide scrollbars */
       scrollbar-width: none;
