@@ -48,32 +48,34 @@ export const TitleText = styled(Text)`
   outline: none;
 `
 
-const TABS_SCROLL_PADDING = 100
-
 export const TabsBox = styled(Box)(({theme}: {theme: Theme}) => {
   const {color, space} = theme.sanity
 
   return css`
-    margin: -${space[2]}px 0 -${space[2]}px -${space[3]}px;
     overflow: hidden;
     position: relative;
 
     & > div {
       white-space: nowrap;
-      padding: ${space[2]}px 0 calc(${TABS_SCROLL_PADDING}px + ${space[2]}px) ${space[3]}px;
-      margin-bottom: ${0 - TABS_SCROLL_PADDING}px;
+      padding: ${space[2]}px 0 ${space[2]}px ${space[3]}px;
       overflow: auto;
-
-      /* right padding */
-      & > div:after {
-        content: '';
-        display: inline-block;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: ${space[3]}px;
-        height: 1px;
+      /* Hide scrollbars */
+      scrollbar-width: none;
+      &::-webkit-scrollbar {
+        width: 0;
+        height: 0;
       }
+    }
+
+    /* right padding */
+    & > div:after {
+      content: '';
+      display: inline-block;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: ${space[3]}px;
+      height: 1px;
     }
 
     /* Gradient that makes it look like tabs disappear into nothing (looks nicer) */

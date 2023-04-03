@@ -82,17 +82,9 @@ export const PaneHeader = forwardRef(function PaneHeader(
             </Layout>
 
             {(tabs || subActions) && (
-              <Flex
-                align="center"
-                hidden={collapsed}
-                paddingTop={content ? 0 : 2}
-                paddingRight={2}
-                paddingBottom={2}
-                paddingLeft={3}
-                overflow="auto"
-              >
+              <Flex align="center" hidden={collapsed} paddingRight={2} overflow="auto">
                 <TabsBox flex={1} marginRight={subActions ? 3 : 0}>
-                  <div>{tabs}</div>
+                  {tabs}
                 </TabsBox>
 
                 {subActions && <Box>{subActions}</Box>}
