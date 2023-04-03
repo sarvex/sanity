@@ -43,8 +43,9 @@ export const DocumentPanelHeader = memo(
     const showTabs = views.length > 1
     const showVersionMenu = features.reviewChanges
 
-    const {isLast} = usePane()
-    const tabIndex = isLast ? -1 : 0
+    const {collapsed, isLast} = usePane()
+    // Prevent focus if this is the last (non-collapsed) pane.
+    const tabIndex = isLast && !collapsed ? -1 : 0
 
     // there are three kinds of buttons possible:
     //
