@@ -2,6 +2,7 @@ import {SyncIcon} from '@sanity/icons'
 import {Box, Button, Card, Container, Flex, Heading, Spinner, Stack, Text} from '@sanity/ui'
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {SanityDocument} from '@sanity/types'
+import styled from 'styled-components'
 import {Delay, PaneContent, usePane, usePaneLayout, PaneItem} from '../../components'
 import {useInputType} from '../../input-type'
 import {DocumentListPaneItem} from './types'
@@ -12,6 +13,25 @@ import {
   getPublishedId,
   useSchema,
 } from 'sanity'
+
+const RootBox = styled(Box)`
+  position: relative;
+`
+
+const CommandListBox = styled(Box)`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+`
+
+const LoadingCard = styled(Card)`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+`
 
 interface DocumentListPaneContentProps {
   childItemId?: string
@@ -157,50 +177,42 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
     // TODO: DO WE NEED THIS?
     const key = `${index}-${collapsed}`
 
-    // if (items.length > 0) {
     return (
-      <Box style={{position: 'relative'}} overflow="hidden" height="fill">
-        <CommandList
-          activeItemDataAttr="data-hovered"
-          ariaLabel="Documents" // TODO: Add better aria-label
-          disableActivateOnHover
-          focusVisible={inputType === 'keyboard'}
-          initialScrollAlign="center"
-          inputElement={searchInputElement}
-          itemHeight={51}
-          items={items}
-          key={key}
-          onEndReached={onListChange}
-          overscan={10}
-          padding={2}
-          paddingBottom={0}
-          ref={commandListRef}
-          renderItem={renderItem}
-          tabIndex={0}
-          wrapAround={false}
-        />
+      <RootBox overflow="hidden" height="fill">
+        <CommandListBox>
+          <CommandList
+            activeItemDataAttr="data-hovered"
+            ariaLabel="Documents" // TODO: Add better aria-label
+            disableActivateOnHover
+            focusVisible={inputType === 'keyboard'}
+            initialScrollAlign="center"
+            inputElement={searchInputElement}
+            itemHeight={51}
+            items={items}
+            key={key}
+            onEndReached={onListChange}
+            overscan={10}
+            padding={2}
+            paddingBottom={0}
+            ref={commandListRef}
+            renderItem={renderItem}
+            tabIndex={0}
+            wrapAround={false}
+          />
+        </CommandListBox>
 
         {/* TODO: Improve this */}
         {items.length > 0 && isLoading && (
           <Delay ms={300}>
-            <Card
-              padding={5}
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-              }}
-            >
+            <LoadingCard padding={5}>
               <Flex align="center" direction="column" height="fill" justify="center">
                 <Spinner muted />
               </Flex>
-            </Card>
+            </LoadingCard>
           </Delay>
         )}
-      </Box>
+      </RootBox>
     )
-    // }
 
     // return (
     //   <Box padding={2}>
