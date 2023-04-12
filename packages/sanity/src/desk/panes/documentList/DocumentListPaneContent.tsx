@@ -1,5 +1,5 @@
 import {SyncIcon} from '@sanity/icons'
-import {Box, Button, Card, Container, Flex, Heading, Spinner, Stack, Text} from '@sanity/ui'
+import {Box, Button, Container, Flex, Heading, Spinner, Stack, Text} from '@sanity/ui'
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {SanityDocument} from '@sanity/types'
 import styled from 'styled-components'
@@ -9,6 +9,7 @@ import {DocumentListPaneItem} from './types'
 import {
   CommandList,
   CommandListHandle,
+  CommandListRenderItemCallback,
   GeneralPreviewLayoutKey,
   getPublishedId,
   useSchema,
@@ -23,13 +24,6 @@ const CommandListBox = styled(Box)`
   left: 0;
   right: 0;
   top: 0;
-  bottom: 0;
-`
-
-const LoadingCard = styled(Card)`
-  position: absolute;
-  left: 0;
-  right: 0;
   bottom: 0;
 `
 
@@ -91,27 +85,34 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
     }
   }, [collapsed, items])
 
-  const renderItem = useCallback(
-    (item: SanityDocument) => {
+  const renderItem = useCallback<CommandListRenderItemCallback<SanityDocument>>(
+    (item, {activeIndex}) => {
       const publishedId = getPublishedId(item._id)
       const isSelected = childItemId === publishedId
       const pressed = !isActive && isSelected
       const selected = isActive && isSelected
 
       return (
-        <PaneItem
-          icon={showIcons === false ? false : undefined}
-          id={publishedId}
-          layout={layout}
-          marginBottom={2}
-          pressed={pressed}
-          schemaType={schema.get(item._type)}
-          selected={selected}
-          value={item}
-        />
+        <>
+          <PaneItem
+            icon={showIcons === false ? false : undefined}
+            id={publishedId}
+            layout={layout}
+            marginBottom={2}
+            pressed={pressed}
+            schemaType={schema.get(item._type)}
+            selected={selected}
+            value={item}
+          />
+          {activeIndex === items.length - 1 && isLoading && (
+            <Flex align="center" justify="center" padding={4}>
+              <Spinner muted />
+            </Flex>
+          )}
+        </>
       )
     },
-    [childItemId, isActive, layout, schema, showIcons]
+    [childItemId, isActive, isLoading, items.length, layout, schema, showIcons]
   )
 
   const content = useMemo(() => {
@@ -172,7 +173,6 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
       )
     }
 
-    // const hasMoreItems = fullList && items.length === FULL_LIST_LIMIT
     // prevents bug when panes won't render if first rendered while collapsed
     // TODO: DO WE NEED THIS?
     const key = `${index}-${collapsed}`
@@ -190,6 +190,7 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
             itemHeight={51}
             items={items}
             key={key}
+            onEndReachedIndexOffset={20}
             onEndReached={onListChange}
             overscan={10}
             padding={2}
@@ -200,39 +201,8 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
             wrapAround={false}
           />
         </CommandListBox>
-
-        {/* TODO: Improve this */}
-        {items.length > 0 && isLoading && (
-          <Delay ms={300}>
-            <LoadingCard padding={5}>
-              <Flex align="center" direction="column" height="fill" justify="center">
-                <Spinner muted />
-              </Flex>
-            </LoadingCard>
-          </Delay>
-        )}
       </RootBox>
     )
-
-    // return (
-    //   <Box padding={2}>
-    //     {isLoading && (
-    //       <Card borderTop marginTop={1} paddingX={3} paddingY={4}>
-    //         <Text align="center" muted size={1}>
-    //           Loading…
-    //         </Text>
-    //       </Card>
-    //     )}
-
-    //     {hasMoreItems && (
-    //       <Card marginTop={1} paddingX={3} paddingY={4} radius={2} tone="transparent">
-    //         <Text align="center" muted size={1}>
-    //           Displaying a maximum of {FULL_LIST_LIMIT} documents
-    //         </Text>
-    //       </Card>
-    //     )}
-    //   </Box>
-    // )
   }, [
     collapsed,
     error,
