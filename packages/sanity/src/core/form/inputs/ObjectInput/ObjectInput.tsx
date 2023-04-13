@@ -3,14 +3,11 @@ import {Grid, Stack} from '@sanity/ui'
 import {ObjectInputProps} from '../../types'
 import {ObjectInputMembers} from '../../members'
 import {UnknownFields} from './UnknownFields'
-import {FieldGroupTabsWrapper} from './ObjectInput.styled'
-import {FieldGroupTabs} from './fieldGroups/FieldGroupTabs'
 
 /** @beta */
 export const ObjectInput = memo(function ObjectInput(props: ObjectInputProps) {
   const {
     schemaType,
-    groups,
     members,
     onChange,
     renderAnnotation,
@@ -20,11 +17,7 @@ export const ObjectInput = memo(function ObjectInput(props: ObjectInputProps) {
     renderField,
     renderItem,
     renderPreview,
-    level,
     value,
-    id,
-    path,
-    onFieldGroupSelect,
   } = props
 
   const {columns} = schemaType.options || {}
@@ -74,21 +67,11 @@ export const ObjectInput = memo(function ObjectInput(props: ObjectInputProps) {
   if (members.length === 0) {
     return null
   }
+
   return (
     <Stack space={5}>
-      {groups.length > 0 ? (
-        <FieldGroupTabsWrapper $level={level} data-testid="field-groups">
-          <FieldGroupTabs
-            groups={groups}
-            inputId={id}
-            onClick={onFieldGroupSelect}
-            shouldAutoFocus={path.length === 0}
-          />
-        </FieldGroupTabsWrapper>
-      ) : null}
-
       {columns ? (
-        <Grid columns={columns} gap={4} marginTop={1}>
+        <Grid columns={columns} gapX={4} gapY={5}>
           {renderObjectMembers()}
         </Grid>
       ) : (
