@@ -30,7 +30,6 @@ const CommandListBox = styled(Box)`
 interface DocumentListPaneContentProps {
   childItemId?: string
   error: {message: string} | null
-  // fullList: boolean // Do we need this?
   isActive?: boolean
   isLoading: boolean
   items: DocumentListPaneItem[]
@@ -47,7 +46,6 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
     onListChange,
     childItemId,
     error,
-    // fullList,
     isActive,
     isLoading,
     items,
@@ -91,6 +89,7 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
       const isSelected = childItemId === publishedId
       const pressed = !isActive && isSelected
       const selected = isActive && isSelected
+      const showSpinner = activeIndex === items.length - 1 && isLoading
 
       return (
         <>
@@ -98,13 +97,14 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
             icon={showIcons === false ? false : undefined}
             id={publishedId}
             layout={layout}
-            marginBottom={2}
+            marginBottom={1}
             pressed={pressed}
             schemaType={schema.get(item._type)}
             selected={selected}
             value={item}
           />
-          {activeIndex === items.length - 1 && isLoading && (
+
+          {showSpinner && (
             <Flex align="center" justify="center" padding={4}>
               <Spinner muted />
             </Flex>
@@ -174,7 +174,6 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
     }
 
     // prevents bug when panes won't render if first rendered while collapsed
-    // TODO: DO WE NEED THIS?
     const key = `${index}-${collapsed}`
 
     return (
@@ -182,7 +181,7 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
         <CommandListBox>
           <CommandList
             activeItemDataAttr="data-hovered"
-            ariaLabel="Documents" // TODO: Add better aria-label
+            ariaLabel="Document list"
             disableActivateOnHover
             focusVisible={inputType === 'keyboard'}
             initialScrollAlign="center"
@@ -190,8 +189,8 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
             itemHeight={51}
             items={items}
             key={key}
-            onEndReachedIndexOffset={20}
             onEndReached={onListChange}
+            onEndReachedIndexOffset={20}
             overscan={10}
             padding={2}
             paddingBottom={0}

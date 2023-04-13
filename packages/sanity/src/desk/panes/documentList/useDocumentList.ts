@@ -1,35 +1,11 @@
-import {useEffect, useState, useCallback, useMemo, useRef} from 'react'
-import {of} from 'rxjs'
-import {filter as filterEvents} from 'rxjs/operators'
+import {useEffect, useState, useCallback, useMemo} from 'react'
+import {concat, of, filter as filterEvents, Subject, throttleTime} from 'rxjs'
 import {DocumentListPaneItem, QueryResult, SortOrder} from './types'
 import {removePublishedWithDrafts, toOrderClause} from './helpers'
 import {DEFAULT_ORDERING, FULL_LIST_LIMIT, PARTIAL_PAGE_LIMIT} from './constants'
 import {getQueryResults} from './getQueryResults'
-import {DEFAULT_STUDIO_CLIENT_OPTIONS, useClient} from 'sanity'
-
-// Todo extract this to a separate file
-// Get the count of documents of a given type
-function useDocumentTypeCount(type: string) {
-  const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
-  const [{count}, setCount] = useState<{count: number}>({count: 0})
-
-  useEffect(() => {
-    const query = `
-    {
-      'drafts': *[ _type == $type && _id in path("drafts.**") ]._id,
-      'published': *[ _type == $type && !(_id in path("drafts.**"))]._id,
-    }
-    {
-      'count': count(published[ !("drafts." + @ in ^.drafts) ] + drafts)
-    }`
-
-    const sub = client.observable.fetch(query, {type}).subscribe(setCount)
-
-    return () => sub.unsubscribe()
-  }, [client.observable, type])
-
-  return count
-}
+import {useDocumentTypeCount} from './hooks'
+import {DEFAULT_STUDIO_CLIENT_OPTIONS, FIXME, useClient} from 'sanity'
 
 const INITIAL_STATE: QueryResult = {
   error: null,
@@ -49,7 +25,6 @@ interface UseDocumentListOpts {
 
 interface DocumentListState {
   error: {message: string} | null
-  fullList: boolean
   handleListChange: () => void
   isLoading: boolean
   items: DocumentListPaneItem[]
@@ -69,18 +44,22 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   const documents = result?.result?.documents
   const items = useMemo(() => (documents ? removePublishedWithDrafts(documents) : []), [documents])
 
+  const listChangeSubject = useMemo(() => new Subject(), [])
+
   const [page, setPage] = useState(1)
-  const [disableReachEnd, setDisableReachEnd] = useState(isLoading)
-  const count = useDocumentTypeCount(params?.type as string)
-  const hasReachedEnd = useMemo(() => items.length === count, [count, items])
-  const hasReachedEndTimeOutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [disableLoadMore, setDisableLoadMore] = useState(false)
 
-  const queryRange = useMemo(() => {
-    const startRange = 0
-    const endRange = page * PARTIAL_PAGE_LIMIT
+  const documentCount = useDocumentTypeCount({params, filter})
+  const count = documentCount?.data?.count || 0
+  const countLoading = documentCount?.loading || false
 
-    return `[${startRange}...${endRange}]`
-  }, [page])
+  // The list if full when:
+  // - The number of items is equal to the total number of documents of the given type
+  // - The number of items is equal to the limit of the full list
+  const hasFullList = useMemo(
+    () => items.length >= FULL_LIST_LIMIT || items.length === count,
+    [items.length, count]
+  )
 
   const query = useMemo(() => {
     const extendedProjection = sortOrder?.extendedProjection
@@ -90,76 +69,75 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     const sort = sortBy.length > 0 ? sortBy : DEFAULT_ORDERING.by
     const order = toOrderClause(sort)
 
+    const range = `[0...${page * PARTIAL_PAGE_LIMIT}]`
+
     if (extendedProjection) {
       const firstProjection = projectionFields.concat(extendedProjection).join(',')
       return [
         `*[${filter}] {${firstProjection}}`,
-        `order(${order}) ${queryRange}`,
+        `order(${order}) ${range}`,
         `{${finalProjection}}`,
       ].join('|')
     }
 
-    return `*[${filter}]|order(${order})${queryRange}{${finalProjection}}`
-  }, [sortOrder?.extendedProjection, sortOrder?.by, filter, queryRange])
-
-  const hasFullList = useMemo(() => items.length >= FULL_LIST_LIMIT, [items])
+    return `*[${filter}]|order(${order})${range}{${finalProjection}}`
+  }, [sortOrder?.extendedProjection, sortOrder?.by, page, filter])
 
   const handleListChange = useCallback(() => {
-    if (isLoading || disableReachEnd || hasFullList || hasReachedEnd) {
-      return
-    }
+    listChangeSubject.next(undefined)
 
-    setDisableReachEnd(true)
+    if (isLoading || hasFullList || disableLoadMore) return
+
+    setDisableLoadMore(true)
     setPage((v) => v + 1)
-  }, [disableReachEnd, hasFullList, isLoading, hasReachedEnd])
+  }, [disableLoadMore, listChangeSubject, hasFullList, isLoading])
 
-  // TODO: Improve
-  // The reach end can be triggered twice if the user scrolls fast enough
-  // This is a workaround to prevent that from happening by disabling the reach end
-  // for a short period of time after it has been triggered. This is not ideal, but
-  // it works for now. We should look into a better solution.
+  const handleSetResult = useCallback(
+    (res: QueryResult) => {
+      const isLoadingMoreItems = res?.result?.documents?.length === 0 && page > 1
+
+      // If the result is empty and the page is greater than 1, it means that
+      // we are loading more items. In this case, we don't want to set the result
+      // to the empty result, but rather keep the previous result and set the
+      // loading state to true.
+      if (isLoadingMoreItems) {
+        setResult((prev) => ({...prev, loading: true}))
+        return
+      }
+
+      setResult(res)
+    },
+    [page]
+  )
+
   useEffect(() => {
-    if (hasReachedEndTimeOutRef.current) {
-      clearTimeout(hasReachedEndTimeOutRef.current)
-    }
-
-    if (disableReachEnd) {
-      hasReachedEndTimeOutRef.current = setTimeout(() => {
-        setDisableReachEnd(false)
-      }, 300)
-    }
+    const subscription = listChangeSubject.pipe(throttleTime(300)).subscribe(() => {
+      setDisableLoadMore(false)
+    })
 
     return () => {
-      if (hasReachedEndTimeOutRef.current) {
-        clearTimeout(hasReachedEndTimeOutRef.current)
-      }
+      subscription.unsubscribe()
     }
-
-    // return undefined
-  }, [disableReachEnd, isLoading, count])
+  }, [listChangeSubject])
 
   // Set up the document list listener
   useEffect(() => {
     // @todo: explain what this does
-    // const filterFn = fullList
-    //   ? (queryResult: {result: QueryResult | null}) => Boolean(queryResult.result)
-    //   : () => true
-
-    // TODO: Do we need to function above or can we just use this?
-    const filterFn = (queryResult: {result: QueryResult | null}) => Boolean(queryResult.result)
-
-    // Set loading state
-    setResult((r) => (r ? {...r, loading: true} : r))
+    const filterFn = (queryResult: QueryResult) => Boolean(queryResult.result)
 
     const queryResults$ = getQueryResults(of({client, query, params}), {
       apiVersion,
       tag: 'desk.document-list',
-    }).pipe(filterEvents(filterFn) as any)
+    }).pipe(filterEvents(filterFn as FIXME))
 
-    const sub = queryResults$.subscribe(setResult as any)
+    const initial$ = of(INITIAL_STATE)
+    const state$ = concat(initial$, queryResults$)
+    const sub = state$.subscribe(handleSetResult as FIXME)
 
-    return () => sub.unsubscribe()
-  }, [apiVersion, client, query, params])
+    return () => {
+      sub.unsubscribe()
+    }
+  }, [apiVersion, client, query, params, handleSetResult])
 
   // If `filter` or `params` changed, set up a new query from scratch.
   // If `sortOrder` changed, set up a new query from scratch as well.
@@ -170,9 +148,8 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
 
   return {
     error,
-    fullList: hasReachedEnd, // TODO: implement this
     handleListChange,
-    isLoading,
+    isLoading: isLoading || countLoading,
     items,
     onRetry,
   }

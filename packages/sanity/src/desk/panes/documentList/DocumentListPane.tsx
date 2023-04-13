@@ -20,6 +20,7 @@ import {DocumentListPaneContent} from './DocumentListPaneContent'
 import {DocumentListPaneHeader} from './DocumentListPaneHeader'
 import {SortOrder} from './types'
 import {useDocumentList} from './useDocumentList'
+import {useDocumentTypeNames} from './hooks'
 import {GeneralPreviewLayoutKey, SourceProvider, useSchema, useSource, useUnique} from 'sanity'
 
 type DocumentListPaneProps = BaseDeskToolPaneProps<'documentList'>
@@ -93,8 +94,8 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
     defaultLayout = 'default',
     displayOptions,
     initialValueTemplates = EMPTY_ARRAY,
-    menuItems,
     menuItemGroups,
+    menuItems,
     options,
     title,
   } = pane
@@ -113,6 +114,21 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
 
   const [searchQuery, setSearchQuery] = useState<string | null>(null)
   const [searchInputElement, setSearchInputElement] = useState<HTMLInputElement | null>(null)
+
+  // Since a document list pane can be used to display documents of multiple types, we need to
+  // fetch the names of all document types that matches the filter and params in order to be able
+  // to search for documents of all types.
+  const {data: documentTypeNames} = useDocumentTypeNames({
+    filter,
+    params,
+  })
+
+  // The preview fields are used to determine which fields to search for
+  const allPreviewFields = useMemo(() => {
+    if (!documentTypeNames) return []
+
+    return documentTypeNames.map((name) => schema.get(name)?.preview?.select?.title).filter(Boolean)
+  }, [documentTypeNames, schema])
 
   // Ensure that we use the defaultOrdering value from structure builder if any as the default
   const defaultSortOrder = useMemo(() => {
@@ -163,26 +179,16 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
   }, [])
 
   const filterWithSearchQuery = useMemo(() => {
-    if (searchQuery) {
-      // Pick the preview field for the type
-      const previewField = schema.get(typeName || '')?.preview?.select?.title
-
-      // Use the filter + the preview field match query to filter the list
-      const filterAndSearch = `${filter} && ${previewField} match "*${searchQuery}*"`
-
-      return filterAndSearch
+    if (searchQuery && allPreviewFields.length > 0) {
+      return `${filter} && (${allPreviewFields
+        .map((field) => `${field} match "*${searchQuery}*"`)
+        .join(' || ')})`
     }
-    return filter
-  }, [filter, searchQuery, schema, typeName])
 
-  const {
-    error,
-    // fullList, // TODO: DO WE NEED THIS?
-    handleListChange,
-    isLoading,
-    items,
-    onRetry,
-  } = useDocumentList({
+    return filter
+  }, [searchQuery, allPreviewFields, filter])
+
+  const {error, handleListChange, isLoading, items, onRetry} = useDocumentList({
     filter: filterWithSearchQuery,
     params,
     sortOrder,
@@ -196,13 +202,33 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
         sortOrderRaw,
         layout,
       }),
-    [layout, menuItems, sortOrder]
+    [layout, menuItems, sortOrderRaw]
   )
 
   // Clear search field when switching between panes
   useEffect(() => {
     setSearchQuery(null)
   }, [paneKey])
+
+  const listPaneHeaderContent = (
+    <Box paddingX={2} paddingBottom={2}>
+      <SearchCard tone="transparent" data-focus-visible={inputType === 'keyboard'}>
+        <TextInput
+          border={false}
+          clearButton={Boolean(searchQuery)}
+          fontSize={[2, 1]}
+          icon={SearchIcon}
+          onChange={handleSearchChange}
+          onClear={handleClearSearch}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="Search list"
+          radius={2}
+          ref={setSearchInputElement}
+          value={searchQuery || ''}
+        />
+      </SearchCard>
+    </Box>
+  )
 
   return (
     <SourceProvider name={sourceName || parentSourceName}>
@@ -215,39 +241,20 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
 
         <Stack>
           <DocumentListPaneHeader
+            content={listPaneHeaderContent}
             index={index}
             initialValueTemplates={initialValueTemplates}
-            menuItems={menuItemsWithSelectedState}
             menuItemGroups={menuItemGroups}
+            menuItems={menuItemsWithSelectedState}
             setLayout={setLayout}
             setSortOrder={setSortOrder}
             title={title}
-            content={
-              <Box paddingX={2} paddingBottom={2}>
-                <SearchCard tone="transparent" data-focus-visible={inputType === 'keyboard'}>
-                  <TextInput
-                    border={false}
-                    clearButton={Boolean(searchQuery)}
-                    fontSize={1}
-                    icon={SearchIcon}
-                    onChange={handleSearchChange}
-                    onClear={handleClearSearch}
-                    onKeyDown={handleSearchKeyDown}
-                    placeholder="Search list"
-                    radius={2}
-                    ref={setSearchInputElement}
-                    value={searchQuery || ''}
-                  />
-                </SearchCard>
-              </Box>
-            }
           />
         </Stack>
 
         <DocumentListPaneContent
           childItemId={childItemId}
           error={error}
-          // fullList={fullList} // TODO: DO WE NEED THIS?
           isActive={isActive}
           isLoading={isLoading}
           items={items}

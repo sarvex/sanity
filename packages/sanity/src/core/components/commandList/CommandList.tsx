@@ -15,7 +15,6 @@ import React, {
   useState,
 } from 'react'
 import styled from 'styled-components'
-// import {useInputType} from '../../util'
 import {CommandListHandle, CommandListProps} from './types'
 
 // Data attribute to assign to the current active virtual list element
