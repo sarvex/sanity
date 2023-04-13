@@ -2,15 +2,47 @@
 
 import {isBooleanSchemaType, isReferenceSchemaType, SchemaType} from '@sanity/types'
 import React, {useMemo} from 'react'
+import {Box, Button, Card, Flex, Stack} from '@sanity/ui'
 import {ArrayFieldProps, FieldProps, ObjectFieldProps} from '../../types'
 import {ReferenceField} from '../../inputs/ReferenceInput/ReferenceField'
 import {FieldMember} from '../../store'
 import {FormField, FormFieldSet} from '../../components'
 import {ChangeIndicator} from '../../../changeIndicators'
+import {FieldGroupTabsWrapper} from '../../inputs/ObjectInput/ObjectInput.styled'
+import {FieldGroupTabs} from '../../inputs/ObjectInput/fieldGroups'
 import {getTypeChain} from './helpers'
 
 function PassThrough({children}: {children: React.ReactNode}) {
   return <>{children}</>
+}
+
+function DocumentField(field: ObjectFieldProps) {
+  const {groups, inputId: id, level, onFieldGroupSelect, path} = field
+
+  if (field.actions) {
+    return (
+      <Stack space={5}>
+        <Card borderBottom paddingBottom={2} style={{lineHeight: 0}}>
+          <Flex align="center">
+            <Box flex={1}>
+              {groups.length > 0 ? (
+                <FieldGroupTabs
+                  groups={groups}
+                  inputId={id}
+                  onClick={onFieldGroupSelect}
+                  shouldAutoFocus={path.length === 0}
+                />
+              ) : null}
+            </Box>
+            <Box flex="none">{field.actions}</Box>
+          </Flex>
+        </Card>
+        <div>{field.children}</div>
+      </Stack>
+    )
+  }
+
+  return field.children
 }
 
 function PrimitiveField(field: FieldProps) {
@@ -98,6 +130,10 @@ export function defaultResolveFieldComponent(
   }
 
   const typeChain = getTypeChain(schemaType, new Set())
+
+  if (typeChain.some((t) => t.name === 'document')) {
+    return DocumentField as React.ComponentType<Omit<FieldProps, 'renderDefault'>>
+  }
 
   if (typeChain.some((t) => t.name === 'image' || t.name === 'file')) {
     return ImageOrFileField as React.ComponentType<Omit<FieldProps, 'renderDefault'>>
