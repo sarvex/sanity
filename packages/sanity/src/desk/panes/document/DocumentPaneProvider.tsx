@@ -14,8 +14,10 @@ import {getMenuItems} from './menuItems'
 import {DocumentPaneProviderProps} from './types'
 import {usePreviewUrl} from './usePreviewUrl'
 import {getInitialValueTemplateOpts} from './getInitialValueTemplateOpts'
+import {DEFAULT_MENU_ITEM_GROUPS, EMPTY_PARAMS, INSPECT_ACTION_PREFIX} from './constants'
 import {
   DEFAULT_STUDIO_CLIENT_OPTIONS,
+  DocumentInspector,
   DocumentPresence,
   PatchEvent,
   StateTree,
@@ -41,8 +43,6 @@ import {
   useDocumentValuePermissions,
 } from 'sanity'
 
-const emptyObject = {} as Record<string, string | undefined>
-
 /**
  * @internal
  */
@@ -56,18 +56,25 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     actions: documentActions,
     badges: documentBadges,
     unstable_languageFilter: languageFilterResolver,
+    inspectors: inspectorsResolver,
   } = useSource().document
   const historyStore = useHistoryStore()
   const presenceStore = usePresenceStore()
   const paneRouter = usePaneRouter()
+  const setPaneParams = paneRouter.setParams
   const {features} = useDeskTool()
   const {push: pushToast} = useToast()
-  const {options, menuItemGroups, title = null, views: viewsProp = []} = pane
+  const {
+    options,
+    menuItemGroups = DEFAULT_MENU_ITEM_GROUPS,
+    title = null,
+    views: viewsProp = [],
+  } = pane
   const paneOptions = useUnique(options)
   const documentIdRaw = paneOptions.id
   const documentId = getPublishedId(documentIdRaw)
   const documentType = options.type
-  const paneParams = useUnique(paneRouter.params)
+  const params = useUnique(paneRouter.params) || EMPTY_PARAMS
   const panePayload = useUnique(paneRouter.payload)
   const {templateName, templateParams} = useMemo(
     () =>
@@ -76,9 +83,9 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
         templateName: paneOptions.template,
         templateParams: paneOptions.templateParameters,
         panePayload,
-        urlTemplate: paneParams?.template,
+        urlTemplate: params.template,
       }),
-    [documentType, paneOptions, paneParams, panePayload, templates]
+    [documentType, paneOptions, params, panePayload, templates]
   )
   const initialValueRaw = useInitialValue({
     documentId,
@@ -87,7 +94,7 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     templateParams,
   })
   const initialValue = useUnique(initialValueRaw)
-  const {patch}: any = useDocumentOperation(documentId, documentType)
+  const {patch} = useDocumentOperation(documentId, documentType)
   const editState = useEditState(documentId, documentType)
   const {validation: validationRaw} = useValidationStatus(documentId, documentType)
   const connectionState = useConnectionState(documentId, documentType)
@@ -114,7 +121,7 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
 
   const validation = useUnique(validationRaw)
   const views = useUnique(viewsProp)
-  const params = paneRouter.params || emptyObject
+
   const [focusPath, setFocusPath] = useState<Path>(() =>
     params.path ? pathFromString(params.path) : []
   )
@@ -128,7 +135,7 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const {historyController} = useMemoObservable(
     () => historyStore.getTimelineController({client, documentId, documentType, timeline}),
-    [client, documentId, documentType, timeline]
+    [client, documentId, documentType, historyStore, timeline]
   )!
 
   // @todo: this will now happen on each render, but should be refactored so it happens only when
@@ -150,10 +157,26 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     }
   }, [documentId, presenceStore])
 
+  const inspectors: DocumentInspector[] = useMemo(
+    () => inspectorsResolver({documentId, documentType}, []),
+    [documentId, documentType, inspectorsResolver]
+  )
+
+  const currentInspector = inspectors?.find((i) => i.name === params.inspect)
+
   const hasValue = Boolean(value)
   const menuItems = useMemo(
-    () => getMenuItems({features, hasValue, changesOpen, previewUrl}),
-    [features, hasValue, changesOpen, previewUrl]
+    () =>
+      getMenuItems({
+        changesOpen,
+        currentInspector,
+        features,
+        hasValue,
+        inspectors,
+        previewUrl,
+        validation,
+      }),
+    [changesOpen, currentInspector, features, hasValue, inspectors, previewUrl, validation]
   )
   const inspectOpen = params.inspect === 'on'
   const compareValue: Partial<SanityDocument> | null = changesOpen
@@ -173,13 +196,13 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
 
   const setTimelineRange = useCallback(
     (newSince: string, newRev: string | null) => {
-      paneRouter.setParams({
-        ...paneRouter.params,
+      setPaneParams({
+        ...params,
         since: newSince,
         rev: newRev || undefined,
       })
     },
-    [paneRouter]
+    [params, setPaneParams]
   )
 
   const handleFocus = useCallback(
@@ -214,7 +237,53 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     patch.execute(toMutationPatches(event.patches), initialValue.value)
   }
 
-  const handleChange = useCallback((event: any) => patchRef.current(event), [])
+  const handleChange = useCallback((event: PatchEvent) => patchRef.current(event), [])
+
+  const closeInspector = useCallback(
+    (inspector?: DocumentInspector) => {
+      if (!currentInspector) {
+        return
+      }
+
+      if (inspector) {
+        const result = inspector.onClose?.({params}) ?? {params}
+
+        setPaneParams({...result.params, inspect: undefined})
+
+        return
+      }
+
+      if (currentInspector) {
+        const result = currentInspector.onClose?.({params}) ?? {params}
+
+        setPaneParams({...result.params, inspect: undefined})
+      }
+    },
+    [currentInspector, params, setPaneParams]
+  )
+
+  const openInspector = useCallback(
+    (inspector: DocumentInspector) => {
+      // toggle if the same inspector is already open
+      if (currentInspector?.name === inspector.name) {
+        closeInspector(inspector)
+        return
+      }
+
+      let currentParams = params
+
+      if (currentInspector) {
+        const closeResult = inspector.onClose?.({params: currentParams}) ?? {params: currentParams}
+
+        currentParams = closeResult.params
+      }
+
+      const result = inspector.onOpen?.({params: currentParams}) ?? {params: currentParams}
+
+      setPaneParams({...result.params, inspect: inspector.name})
+    },
+    [closeInspector, currentInspector, params, setPaneParams]
+  )
 
   const handleHistoryClose = useCallback(() => {
     paneRouter.setParams({...params, since: undefined})
@@ -228,15 +297,15 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
 
   const handlePaneSplit = useCallback(() => paneRouter.duplicateCurrent(), [paneRouter])
 
-  const toggleInspect = useCallback(
+  const toggleLegacyInspect = useCallback(
     (toggle = !inspectOpen) => {
       if (toggle) {
-        paneRouter.setParams({...params, inspect: 'on'})
+        setPaneParams({...params, inspect: 'on'})
       } else {
-        paneRouter.setParams(omit(params, 'inspect'))
+        setPaneParams(omit(params, 'inspect'))
       }
     },
-    [inspectOpen, paneRouter, params]
+    [inspectOpen, params, setPaneParams]
   )
 
   const handleMenuAction = useCallback(
@@ -247,7 +316,7 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
       }
 
       if (item.action === 'inspect') {
-        toggleInspect(true)
+        toggleLegacyInspect(true)
         return true
       }
 
@@ -256,9 +325,20 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
         return true
       }
 
+      if (typeof item.action === 'string' && item.action.startsWith(INSPECT_ACTION_PREFIX)) {
+        const inspectorName = item.action.slice(INSPECT_ACTION_PREFIX.length)
+
+        const inspector = inspectors.find((i) => i.name === inspectorName)
+
+        if (inspector) {
+          openInspector(inspector)
+          return true
+        }
+      }
+
       return false
     },
-    [handleHistoryOpen, previewUrl, toggleInspect]
+    [handleHistoryOpen, inspectors, openInspector, previewUrl, toggleLegacyInspect]
   )
 
   const handleKeyUp = useCallback(
@@ -277,7 +357,10 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     [handleMenuAction, menuItems]
   )
 
-  const handleInspectClose = useCallback(() => toggleInspect(false), [toggleInspect])
+  const handleLegacyInspectClose = useCallback(
+    () => toggleLegacyInspect(false),
+    [toggleLegacyInspect]
+  )
 
   const [openPath, onSetOpenPath] = useState<Path>([])
   const [fieldGroupState, onSetFieldGroupState] = useState<StateTree<string>>()
@@ -381,6 +464,7 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     activeViewId,
     badges,
     changesOpen,
+    closeInspector,
     collapsedFieldSets,
     collapsedPaths,
     compareValue,
@@ -391,6 +475,8 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     documentType,
     editState,
     focusPath,
+    inspector: currentInspector || null,
+    inspectors,
     menuItems,
     onBlur: handleBlur,
     onChange: handleChange,
@@ -398,7 +484,7 @@ export const DocumentPaneProvider = memo((props: DocumentPaneProviderProps) => {
     onPathOpen: handleOpenPath,
     onHistoryClose: handleHistoryClose,
     onHistoryOpen: handleHistoryOpen,
-    onInspectClose: handleInspectClose,
+    onInspectClose: handleLegacyInspectClose,
     onKeyUp: handleKeyUp,
     onMenuAction: handleMenuAction,
     onPaneClose: handlePaneClose,

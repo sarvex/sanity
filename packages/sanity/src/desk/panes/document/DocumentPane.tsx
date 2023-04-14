@@ -30,6 +30,11 @@ import {DocumentStatusBar} from './statusBar'
 import {DocumentPaneProviderProps} from './types'
 import {useDocumentPane} from './useDocumentPane'
 import {
+  DOCUMENT_INSPECTOR_MIN_WIDTH,
+  DOCUMENT_PANEL_INITIAL_MIN_WIDTH,
+  DOCUMENT_PANEL_MIN_WIDTH,
+} from './constants'
+import {
   ChangeConnectorRoot,
   ReferenceInputOptionsProvider,
   SourceProvider,
@@ -42,10 +47,6 @@ import {
 } from 'sanity'
 
 type DocumentPaneOptions = DocumentPaneNode['options']
-
-const DOCUMENT_PANEL_MIN_WIDTH = 320
-const DOCUMENT_PANEL_INITIAL_MIN_WIDTH = 600
-const CHANGES_PANEL_MIN_WIDTH = 320
 
 const DIALOG_PROVIDER_POSITION: DialogProviderProps['position'] = [
   // We use the `position: fixed` for dialogs on narrow screens (< 512px).
@@ -148,8 +149,8 @@ function DocumentPaneInner(props: DocumentPaneProviderProps) {
       {/* stabilize the reference input options formally in the form builder */}
       {/* eslint-disable-next-line react/jsx-pascal-case */}
       <ReferenceInputOptionsProvider
-        EditReferenceLinkComponent={ReferenceChildLink as any}
-        onEditReference={handleEditReference as any}
+        EditReferenceLinkComponent={ReferenceChildLink}
+        onEditReference={handleEditReference}
         initialValueTemplateItems={templatePermissions}
         activePath={activePath}
       >
@@ -204,11 +205,12 @@ function InnerDocumentPane() {
   const {
     changesOpen,
     documentType,
+    inspector,
+    inspectOpen,
     onFocus,
     onPathOpen,
     onHistoryOpen,
     onKeyUp,
-    inspectOpen,
     paneKey,
     schemaType,
     value,
@@ -234,7 +236,7 @@ function InnerDocumentPane() {
         setDocumentPanelPortalElement={setDocumentPanelPortalElement}
       />
     ),
-    [footerH, rootElement, inspectOpen]
+    [footerH, inspectOpen, rootElement]
   )
 
   // These providers are added because we want the dialogs in `DocumentStatusBar` to be scoped to the document pane.
@@ -253,7 +255,7 @@ function InnerDocumentPane() {
   )
 
   const changesPanel = useMemo(() => {
-    if (!features.reviewChanges) return null
+    if (!features.resizablePanes) return null
     if (!changesOpen) return null
 
     return (
@@ -261,7 +263,7 @@ function InnerDocumentPane() {
         <ChangesPanel />
       </BoundaryElementProvider>
     )
-  }, [changesOpen, features.reviewChanges, rootElement])
+  }, [changesOpen, features.resizablePanes, rootElement])
 
   const onConnectorSetFocus = useCallback(
     (path: Path) => {
@@ -348,13 +350,10 @@ function InnerDocumentPane() {
     value,
   ])
 
-  const currentMinWidth = changesOpen
-    ? DOCUMENT_PANEL_INITIAL_MIN_WIDTH + CHANGES_PANEL_MIN_WIDTH
-    : DOCUMENT_PANEL_INITIAL_MIN_WIDTH
+  const currentMinWidth =
+    DOCUMENT_PANEL_INITIAL_MIN_WIDTH + (inspector ? DOCUMENT_INSPECTOR_MIN_WIDTH : 0)
 
-  const minWidth = changesOpen
-    ? DOCUMENT_PANEL_MIN_WIDTH + CHANGES_PANEL_MIN_WIDTH
-    : DOCUMENT_PANEL_MIN_WIDTH
+  const minWidth = DOCUMENT_PANEL_MIN_WIDTH + (inspector ? DOCUMENT_INSPECTOR_MIN_WIDTH : 0)
 
   return (
     <DocumentActionShortcuts

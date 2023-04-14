@@ -4,7 +4,10 @@ import {usePane} from './usePane'
 import {Layout, Root, TabsBox, TitleBox, TitleTextSkeleton, TitleText} from './PaneHeader.styles'
 import {LegacyLayerProvider} from 'sanity'
 
-interface PaneHeaderProps {
+/**
+ * @beta This API will change. DO NOT USE IN PRODUCTION.
+ */
+export interface PaneHeaderProps {
   actions?: React.ReactNode
   backButton?: React.ReactNode
   loading?: boolean
@@ -41,6 +44,8 @@ export const PaneHeader = forwardRef(function PaneHeader(
     expand()
   }, [collapsed, expand])
 
+  const showTabsOrSubActions = Boolean(!collapsed && (tabs || subActions))
+
   return (
     <LayerProvider zOffset={100}>
       <Root data-collapsed={collapsed ? '' : undefined} data-testid="pane-header" ref={ref}>
@@ -49,17 +54,22 @@ export const PaneHeader = forwardRef(function PaneHeader(
             <Layout
               onClick={handleLayoutClick}
               padding={2}
-              paddingBottom={tabs || subActions ? 0 : 2}
+              paddingBottom={showTabsOrSubActions ? 0 : 2}
               sizing="border"
               style={layoutStyle}
             >
-              {backButton}
+              {backButton && (
+                <Box flex="none" padding={1}>
+                  {backButton}
+                </Box>
+              )}
 
               <TitleBox
                 flex={1}
                 onClick={handleTitleClick}
-                paddingY={3}
-                paddingLeft={backButton ? 1 : 3}
+                paddingTop={3}
+                paddingLeft={backButton ? 0 : 3}
+                paddingBottom={showTabsOrSubActions ? 2 : 3}
               >
                 {loading && <TitleTextSkeleton animated radius={1} />}
                 {!loading && (
@@ -70,13 +80,13 @@ export const PaneHeader = forwardRef(function PaneHeader(
               </TitleBox>
 
               {actions && (
-                <Box hidden={collapsed} paddingLeft={1}>
+                <Box flex="none" hidden={collapsed}>
                   <LegacyLayerProvider zOffset="paneHeader">{actions}</LegacyLayerProvider>
                 </Box>
               )}
             </Layout>
 
-            {(tabs || subActions) && (
+            {showTabsOrSubActions && (
               <Flex
                 align="center"
                 hidden={collapsed}
@@ -90,7 +100,7 @@ export const PaneHeader = forwardRef(function PaneHeader(
                   <div>{tabs}</div>
                 </TabsBox>
 
-                {subActions && <Box>{subActions}</Box>}
+                {subActions && <Box flex="none">{subActions}</Box>}
               </Flex>
             )}
           </Card>

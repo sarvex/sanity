@@ -1,5 +1,5 @@
 import {UnknownIcon} from '@sanity/icons'
-import {Box, Button, Inline, Text, Tooltip} from '@sanity/ui'
+import {Box, Button, Flex, Text, Tooltip} from '@sanity/ui'
 import {partition, uniqBy} from 'lodash'
 import React, {memo, useCallback, useMemo} from 'react'
 import {DeskToolPaneActionHandler, PaneMenuItem, PaneMenuItemGroup} from '../../types'
@@ -140,57 +140,53 @@ export const PaneHeaderActions = memo(
     }, [initialValueTemplateItemFromMenuItems, initialValueTemplateItemsFromStructure])
 
     return (
-      <Inline space={1}>
-        {[
-          Boolean(combinedInitialValueTemplates.length) && (
-            <PaneHeaderCreateButton
-              key="$CreateMenuButton"
-              templateItems={combinedInitialValueTemplates}
-            />
-          ),
-          //
-          ...actionMenuItems.map((actionItem, actionIndex) => {
-            return (
-              <Tooltip
-                content={
-                  <Box padding={2}>
-                    <Text size={1}>{actionItem.title}</Text>
-                  </Box>
-                }
-                // eslint-disable-next-line react/no-array-index-key
-                key={`${actionIndex}-${actionItem.title}`}
-                placement="bottom"
-              >
-                {actionItem.intent ? (
-                  <IntentButton
-                    intent={actionItem.intent}
-                    aria-label={actionItem.title}
-                    icon={actionItem.icon || UnknownIcon}
-                    mode="bleed"
-                  />
-                ) : (
-                  <Button
-                    aria-label={actionItem.title}
-                    icon={actionItem.icon || UnknownIcon}
-                    mode="bleed"
-                    // eslint-disable-next-line react/jsx-no-bind
-                    onClick={() => handleAction(actionItem)}
-                  />
-                )}
-              </Tooltip>
-            )
-          }),
-          //
-          Boolean(contextMenuItems.length) && (
-            <PaneContextMenuButton
-              items={contextMenuItems}
-              itemGroups={menuItemGroups}
-              key="$ContextMenu"
-              onAction={handleAction}
-            />
-          ),
-        ]}
-      </Inline>
+      <Flex gap={1}>
+        {combinedInitialValueTemplates.length > 0 && (
+          <PaneHeaderCreateButton
+            key="$CreateMenuButton"
+            templateItems={combinedInitialValueTemplates}
+          />
+        )}
+
+        {actionMenuItems.map((actionItem, actionIndex) => (
+          <Tooltip
+            content={
+              <Box padding={2}>
+                <Text size={1}>{actionItem.title}</Text>
+              </Box>
+            }
+            // eslint-disable-next-line react/no-array-index-key
+            key={`${actionIndex}-${actionItem.title}`}
+            placement="bottom"
+          >
+            {actionItem.intent ? (
+              <IntentButton
+                intent={actionItem.intent}
+                aria-label={actionItem.title}
+                icon={actionItem.icon || UnknownIcon}
+                mode="bleed"
+              />
+            ) : (
+              <Button
+                aria-label={actionItem.title}
+                icon={actionItem.icon || UnknownIcon}
+                mode="bleed"
+                // eslint-disable-next-line react/jsx-no-bind
+                onClick={() => handleAction(actionItem)}
+              />
+            )}
+          </Tooltip>
+        ))}
+
+        {contextMenuItems.length > 0 && (
+          <PaneContextMenuButton
+            items={contextMenuItems}
+            itemGroups={menuItemGroups}
+            key="$ContextMenu"
+            onAction={handleAction}
+          />
+        )}
+      </Flex>
     )
   }
 )
