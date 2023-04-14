@@ -1,10 +1,18 @@
-import {BoundaryElementProvider, Flex, PortalProvider, usePortal, useElementRect} from '@sanity/ui'
+import {
+  BoundaryElementProvider,
+  Flex,
+  PortalProvider,
+  usePortal,
+  useElementRect,
+  Box,
+} from '@sanity/ui'
 import React, {createElement, useEffect, useMemo, useRef, useState} from 'react'
 import styled, {css} from 'styled-components'
-import {PaneContent, usePaneLayout} from '../../../components'
+import {PaneContent, usePane, usePaneLayout} from '../../../components'
 import {useDocumentPane} from '../useDocumentPane'
-import {InspectDialog} from '../inspectDialog'
 import {useDeskTool} from '../../../useDeskTool'
+import {DocumentInspectorPanel} from '../documentInspector'
+import {InspectDialog} from '../inspectDialog'
 import {ReferenceChangedBanner} from './ReferenceChangedBanner'
 import {PermissionCheckBanner} from './PermissionCheckBanner'
 import {FormView} from './documentViews'
@@ -39,6 +47,7 @@ export const DocumentPanel = function DocumentPanel(props: DocumentPanelProps) {
     displayed,
     documentId,
     editState,
+    inspector,
     value,
     views,
     ready,
@@ -47,6 +56,7 @@ export const DocumentPanel = function DocumentPanel(props: DocumentPanelProps) {
     isPermissionsLoading,
   } = useDocumentPane()
   const {collapsed: layoutCollapsed} = usePaneLayout()
+  const {collapsed} = usePane()
   const parentPortal = usePortal()
   const {features} = useDeskTool()
   const [headerElement, setHeaderElement] = useState<HTMLDivElement | null>(null)
@@ -112,44 +122,55 @@ export const DocumentPanel = function DocumentPanel(props: DocumentPanelProps) {
     return isInspectOpen ? <InspectDialog value={displayed || value} /> : null
   }, [isInspectOpen, displayed, value])
 
+  const showInspector = Boolean(!collapsed && inspector)
+
   return (
     <Flex direction="column" flex={2} overflow={layoutCollapsed ? undefined : 'hidden'}>
       <DocumentPanelHeader rootElement={rootElement} ref={setHeaderElement} />
 
       <PaneContent>
-        <PortalProvider
-          element={portalElement}
-          __unstable_elements={{documentScrollElement: documentScrollElement}}
-        >
-          <BoundaryElementProvider element={documentScrollElement}>
-            {activeView.type === 'form' && !isPermissionsLoading && ready && (
-              <>
-                <PermissionCheckBanner
-                  granted={Boolean(permissions?.granted)}
-                  requiredPermission={requiredPermission}
-                />
-                <ReferenceChangedBanner />
-              </>
-            )}
+        <Flex height="fill">
+          {(features.resizablePanes || !showInspector) && (
+            <Box flex={2}>
+              <PortalProvider element={portalElement} __unstable_elements={{documentScrollElement}}>
+                <BoundaryElementProvider element={documentScrollElement}>
+                  {activeView.type === 'form' && !isPermissionsLoading && ready && (
+                    <>
+                      <PermissionCheckBanner
+                        granted={Boolean(permissions?.granted)}
+                        requiredPermission={requiredPermission}
+                      />
+                      <ReferenceChangedBanner />
+                    </>
+                  )}
 
-            <Scroller
-              $disabled={layoutCollapsed || false}
-              data-testid="document-panel-scroller"
-              ref={setDocumentScrollElement}
-            >
-              <FormView
-                hidden={formViewHidden}
-                key={documentId + (ready ? '_ready' : '_pending')}
-                margins={margins}
-              />
-              {activeViewNode}
-            </Scroller>
+                  <Scroller
+                    $disabled={layoutCollapsed || false}
+                    data-testid="document-panel-scroller"
+                    ref={setDocumentScrollElement}
+                  >
+                    <FormView
+                      hidden={formViewHidden}
+                      key={documentId + (ready ? '_ready' : '_pending')}
+                      margins={margins}
+                    />
+                    {activeViewNode}
+                  </Scroller>
 
-            {inspectDialog}
+                  {inspectDialog}
 
-            <div data-testid="document-panel-portal" ref={portalRef} />
-          </BoundaryElementProvider>
-        </PortalProvider>
+                  <div data-testid="document-panel-portal" ref={portalRef} />
+                </BoundaryElementProvider>
+              </PortalProvider>
+            </Box>
+          )}
+
+          {showInspector && (
+            <BoundaryElementProvider element={rootElement}>
+              <DocumentInspectorPanel />
+            </BoundaryElementProvider>
+          )}
+        </Flex>
       </PaneContent>
     </Flex>
   )
