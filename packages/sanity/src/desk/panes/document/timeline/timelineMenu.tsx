@@ -145,6 +145,7 @@ export function TimelineMenu({chunk, mode, placement}: TimelineMenuProps) {
         onClick={open ? handleClose : handleOpen}
         ref={setButton}
         selected={open}
+        style={{maxWidth: '100%'}}
         text={open ? openLabel : buttonLabel}
       />
     </Root>

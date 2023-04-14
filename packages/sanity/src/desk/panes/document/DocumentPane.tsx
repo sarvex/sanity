@@ -1,5 +1,4 @@
 import {
-  BoundaryElementProvider,
   Card,
   Code,
   DialogProvider,
@@ -18,12 +17,10 @@ import {DocumentPaneNode} from '../../types'
 import {usePaneRouter} from '../../components'
 import {PaneFooter} from '../../components/pane'
 import {usePaneLayout} from '../../components/pane/usePaneLayout'
-import {useDeskTool} from '../../useDeskTool'
 import {ErrorPane} from '../error'
 import {LoadingPane} from '../loading'
 import {DocumentOperationResults} from './DocumentOperationResults'
 import {DocumentPaneProvider} from './DocumentPaneProvider'
-import {ChangesPanel} from './changesPanel'
 import {DocumentPanel} from './documentPanel'
 import {DocumentActionShortcuts} from './keyboardShortcuts'
 import {DocumentStatusBar} from './statusBar'
@@ -215,7 +212,6 @@ function InnerDocumentPane() {
     schemaType,
     value,
   } = useDocumentPane()
-  const {features} = useDeskTool()
   const {collapsed: layoutCollapsed} = usePaneLayout()
   const zOffsets = useZIndex()
   const [rootElement, setRootElement] = useState<HTMLDivElement | null>(null)
@@ -253,17 +249,6 @@ function InnerDocumentPane() {
     ),
     [documentPanelPortalElement, zOffsets.portal]
   )
-
-  const changesPanel = useMemo(() => {
-    if (!features.resizablePanes) return null
-    if (!changesOpen) return null
-
-    return (
-      <BoundaryElementProvider element={rootElement}>
-        <ChangesPanel />
-      </BoundaryElementProvider>
-    )
-  }, [changesOpen, features.resizablePanes, rootElement])
 
   const onConnectorSetFocus = useCallback(
     (path: Path) => {
@@ -327,7 +312,6 @@ function InnerDocumentPane() {
               onSetFocus={onConnectorSetFocus}
             >
               {documentPanel}
-              {changesPanel}
             </StyledChangeConnectorRoot>
           </Flex>
         </DialogProvider>
@@ -343,7 +327,6 @@ function InnerDocumentPane() {
     onHistoryOpen,
     onConnectorSetFocus,
     documentPanel,
-    changesPanel,
     footer,
     paneKey,
     documentType,
