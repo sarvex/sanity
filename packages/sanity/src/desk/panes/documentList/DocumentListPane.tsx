@@ -178,6 +178,7 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
     }
   }, [])
 
+  // Add search query to filter
   const filterWithSearchQuery = useMemo(() => {
     if (searchQuery && allPreviewFields.length > 0) {
       return `${filter} && (${allPreviewFields
@@ -188,7 +189,7 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
     return filter
   }, [searchQuery, allPreviewFields, filter])
 
-  const {error, handleListChange, isLoading, items, onRetry} = useDocumentList({
+  const {error, handleListChange, isLoading, items, onRetry, hasMaxItems} = useDocumentList({
     filter: filterWithSearchQuery,
     params,
     sortOrder,
@@ -262,15 +263,16 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
         <DocumentListPaneContent
           childItemId={childItemId}
           error={error}
+          hasMaxItems={hasMaxItems}
           isActive={isActive}
           isLoading={isLoading}
           items={items}
           layout={layout}
           noDocumentsMessage={noDocumentsMessage}
+          onListChange={handleListChange}
           onRetry={onRetry}
           searchInputElement={searchInputElement}
           showIcons={showIcons}
-          onListChange={handleListChange}
         />
       </Pane>
     </SourceProvider>

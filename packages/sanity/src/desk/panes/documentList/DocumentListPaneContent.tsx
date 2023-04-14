@@ -3,6 +3,7 @@ import {Box, Button, Container, Flex, Heading, Spinner, Stack, Text} from '@sani
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {SanityDocument} from '@sanity/types'
 import styled from 'styled-components'
+import {Subject, debounceTime} from 'rxjs'
 import {Delay, PaneContent, usePane, usePaneLayout, PaneItem} from '../../components'
 import {useInputType} from '../../input-type'
 import {DocumentListPaneItem} from './types'
@@ -30,27 +31,29 @@ const CommandListBox = styled(Box)`
 interface DocumentListPaneContentProps {
   childItemId?: string
   error: {message: string} | null
+  hasMaxItems?: boolean
   isActive?: boolean
   isLoading: boolean
   items: DocumentListPaneItem[]
   layout?: GeneralPreviewLayoutKey
+  noDocumentsMessage?: React.ReactNode
   onListChange: () => void
   onRetry?: (event: unknown) => void
-  showIcons: boolean
   searchInputElement: HTMLInputElement | null
-  noDocumentsMessage?: React.ReactNode
+  showIcons: boolean
 }
 
 export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
   const {
-    onListChange,
     childItemId,
     error,
+    hasMaxItems,
     isActive,
     isLoading,
     items,
     layout,
     noDocumentsMessage,
+    onListChange,
     onRetry,
     searchInputElement,
     showIcons,
@@ -63,6 +66,31 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
   const {collapsed, index} = usePane()
   const [shouldRender, setShouldRender] = useState(false)
   const commandListRef = useRef<CommandListHandle | null>(null)
+
+  const disableEndReachedRef = useRef<boolean>(false)
+  const endReachedSubject = useRef(new Subject()).current
+
+  // Run the onListChange callback and disable the end reached handler for a period of time.
+  // This is to avoid triggering the end reached handler too often.
+  // The end reached handler is re-enabled after a delay (see the useEffect below)
+  const handleEndReached = useCallback(() => {
+    if (disableEndReachedRef.current || isLoading) return
+
+    disableEndReachedRef.current = true
+    endReachedSubject.next(undefined)
+
+    onListChange()
+  }, [endReachedSubject, onListChange, isLoading])
+
+  useEffect(() => {
+    const sub = endReachedSubject.pipe(debounceTime(1000)).subscribe(() => {
+      disableEndReachedRef.current = false
+    })
+
+    return () => {
+      sub.unsubscribe()
+    }
+  }, [endReachedSubject])
 
   // Determine if the pane should be auto-focused
   useEffect(() => {
@@ -109,10 +137,18 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
               <Spinner muted />
             </Flex>
           )}
+
+          {hasMaxItems && activeIndex === items.length - 1 && (
+            <Box marginY={1} paddingX={3} paddingY={4}>
+              <Text align="center" muted size={1}>
+                Displaying maximum amount of documents
+              </Text>
+            </Box>
+          )}
         </>
       )
     },
-    [childItemId, isActive, isLoading, items.length, layout, schema, showIcons]
+    [childItemId, isActive, isLoading, items.length, layout, schema, showIcons, hasMaxItems]
   )
 
   const content = useMemo(() => {
@@ -189,9 +225,8 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
             itemHeight={51}
             items={items}
             key={key}
-            onEndReached={onListChange}
-            onEndReachedIndexOffset={20}
-            overscan={10}
+            onEndReached={handleEndReached}
+            overscan={5}
             padding={2}
             paddingBottom={0}
             ref={commandListRef}
@@ -205,12 +240,12 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
   }, [
     collapsed,
     error,
+    handleEndReached,
     index,
     inputType,
     isLoading,
     items,
     noDocumentsMessage,
-    onListChange,
     onRetry,
     renderItem,
     searchInputElement,

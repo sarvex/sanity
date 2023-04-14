@@ -1,5 +1,5 @@
 import {useEffect, useState, useCallback, useMemo} from 'react'
-import {concat, of, filter as filterEvents, Subject, throttleTime} from 'rxjs'
+import {concat, of, filter as filterEvents} from 'rxjs'
 import {DocumentListPaneItem, QueryResult, SortOrder} from './types'
 import {removePublishedWithDrafts, toOrderClause} from './helpers'
 import {DEFAULT_ORDERING, FULL_LIST_LIMIT, PARTIAL_PAGE_LIMIT} from './constants'
@@ -26,6 +26,7 @@ interface UseDocumentListOpts {
 interface DocumentListState {
   error: {message: string} | null
   handleListChange: () => void
+  hasMaxItems?: boolean
   isLoading: boolean
   items: DocumentListPaneItem[]
   onRetry?: (event: unknown) => void
@@ -44,10 +45,7 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   const documents = result?.result?.documents
   const items = useMemo(() => (documents ? removePublishedWithDrafts(documents) : []), [documents])
 
-  const listChangeSubject = useMemo(() => new Subject(), [])
-
   const [page, setPage] = useState(1)
-  const [disableLoadMore, setDisableLoadMore] = useState(false)
 
   const documentCount = useDocumentTypeCount({params, filter})
   const count = documentCount?.data?.count || 0
@@ -56,10 +54,9 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   // The list if full when:
   // - The number of items is equal to the total number of documents of the given type
   // - The number of items is equal to the limit of the full list
-  const hasFullList = useMemo(
-    () => items.length >= FULL_LIST_LIMIT || items.length === count,
-    [items.length, count]
-  )
+  const hasMaxItems = items.length >= FULL_LIST_LIMIT
+  const hasAllItems = items.length === count
+  const hasFullList = hasMaxItems || hasAllItems
 
   // The range of items to fetch.
   // The page variable increments when the user scrolls to the bottom of the list.
@@ -90,13 +87,11 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   }, [sortOrder?.extendedProjection, sortOrder?.by, filter, range])
 
   const handleListChange = useCallback(() => {
-    listChangeSubject.next(undefined)
+    if (isLoading || hasFullList) return
 
-    if (isLoading || hasFullList || disableLoadMore) return
-
-    setDisableLoadMore(true)
+    // Increment the page variable to fetch the next set of items
     setPage((v) => v + 1)
-  }, [disableLoadMore, listChangeSubject, hasFullList, isLoading])
+  }, [hasFullList, isLoading])
 
   const handleSetResult = useCallback(
     (res: QueryResult) => {
@@ -104,8 +99,8 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
 
       // If the result is empty and the page is greater than 1, it means that
       // we are loading more items. In this case, we don't want to set the result
-      // to the empty result, but rather keep the previous result and set the
-      // loading state to true.
+      // to the empty value, but rather keep the previous result and set the
+      // loading state to true and wait for the next result (i.e the fetched items)
       if (isLoadingMoreItems) {
         setResult((prev) => ({...prev, loading: true}))
         return
@@ -115,16 +110,6 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     },
     [page]
   )
-
-  useEffect(() => {
-    const subscription = listChangeSubject.pipe(throttleTime(300)).subscribe(() => {
-      setDisableLoadMore(false)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [listChangeSubject])
 
   // Set up the document list listener
   useEffect(() => {
@@ -155,6 +140,7 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   return {
     error,
     handleListChange,
+    hasMaxItems,
     isLoading: isLoading || countLoading,
     items,
     onRetry,
