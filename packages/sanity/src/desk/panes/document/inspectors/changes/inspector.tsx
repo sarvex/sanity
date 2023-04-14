@@ -1,12 +1,12 @@
 import {ObjectDiff} from '@sanity/diff'
 import {CloseIcon} from '@sanity/icons'
-import {AvatarStack, BoundaryElementProvider, Box, Button, Flex} from '@sanity/ui'
-import React, {useRef} from 'react'
+import {AvatarStack, BoundaryElementProvider, Box, Button, Card, Flex, Text} from '@sanity/ui'
+import React, {ReactElement, useRef} from 'react'
 import styled from 'styled-components'
-import {PaneContent, PaneHeader, usePane} from '../../../components'
-import {TimelineMenu} from '../timeline'
-import {useDocumentPane} from '../useDocumentPane'
-import {LoadingContent} from './content/LoadingContent'
+import {TimelineMenu} from '../../timeline'
+import {useDocumentPane} from '../../useDocumentPane'
+import {DocumentInspectorHeaderCard} from '../../documentInspector'
+import {LoadingContent} from './LoadingContent'
 import {collectLatestAuthorAnnotations} from './helpers'
 import {
   ChangeFieldWrapper,
@@ -14,6 +14,7 @@ import {
   DiffTooltip,
   DocumentChangeContext,
   DocumentChangeContextInstance,
+  DocumentInspectorProps,
   NoChanges,
   ScrollContainer,
   UserAvatar,
@@ -26,9 +27,8 @@ const Scroller = styled(ScrollContainer)`
   scroll-behavior: smooth;
 `
 
-export function ChangesPanel(): React.ReactElement | null {
+export default function ChangesInspector(props: DocumentInspectorProps): ReactElement {
   const {documentId, onHistoryClose, historyController, schemaType, value} = useDocumentPane()
-  const {collapsed} = usePane()
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const historyState = historyController.selectionState
   const loading = historyState === 'loading'
@@ -53,22 +53,50 @@ export function ChangesPanel(): React.ReactElement | null {
     [diff]
   )
 
-  if (collapsed) {
-    return null
-  }
-
   return (
-    <Flex
-      direction="column"
-      flex={1}
-      style={{
-        borderLeft: '1px dashed var(--card-border-color)',
-        overflow: 'hidden',
-        minWidth: 320,
-      }}
-      data-testid="review-changes-pane"
-    >
-      <PaneHeader
+    <Flex data-testid="review-changes-pane" direction="column" height="fill" overflow="hidden">
+      <DocumentInspectorHeaderCard as="header" flex="none">
+        <Flex padding={2} paddingBottom={0}>
+          <Box flex={1} padding={3}>
+            <Text as="h1" size={1} weight="semibold">
+              Review changes
+            </Text>
+          </Box>
+          <Box flex="none" padding={1}>
+            <Button
+              aria-label="Close changes inspector"
+              fontSize={1}
+              icon={CloseIcon}
+              mode="bleed"
+              onClick={onHistoryClose}
+              padding={2}
+            />
+          </Box>
+        </Flex>
+
+        <Flex gap={1} padding={3} paddingTop={0} paddingBottom={2}>
+          <Box flex={1}>
+            <TimelineMenu mode="since" chunk={since} placement="bottom-start" />
+          </Box>
+
+          <Box flex="none">
+            <DiffTooltip
+              annotations={changeAnnotations}
+              description="Changes by"
+              // placement="left"
+              portal
+            >
+              <AvatarStack maxLength={4}>
+                {changeAnnotations.map(({author}) => (
+                  <UserAvatar key={author} user={author} />
+                ))}
+              </AvatarStack>
+            </DiffTooltip>
+          </Box>
+        </Flex>
+      </DocumentInspectorHeaderCard>
+
+      {/* <PaneHeader
         actions={
           <Button
             icon={CloseIcon}
@@ -97,9 +125,9 @@ export function ChangesPanel(): React.ReactElement | null {
         }
         tabs={<TimelineMenu mode="since" chunk={since} placement="bottom-start" />}
         title="Changes"
-      />
+      /> */}
 
-      <PaneContent>
+      <Card flex={1}>
         <BoundaryElementProvider element={scrollRef.current}>
           <Scroller data-ui="Scroller" ref={scrollRef}>
             <Box flex={1} padding={4}>
@@ -107,7 +135,7 @@ export function ChangesPanel(): React.ReactElement | null {
             </Box>
           </Scroller>
         </BoundaryElementProvider>
-      </PaneContent>
+      </Card>
     </Flex>
   )
 }
