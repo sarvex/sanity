@@ -1,9 +1,13 @@
+/* eslint-disable import/no-unassigned-import */
 /* eslint-disable no-process-env */
+
+// fail fast
+import './test/e2e/env'
+
 import os from 'os'
 import fs from 'fs/promises'
 import path from 'path'
 import {defineConfig, devices} from '@playwright/test'
-import {loadEnvFiles} from './scripts/utils/loadEnvFiles'
 
 const CI = Boolean(process.env.CI)
 const TESTS_PATH = path.join(__dirname, 'test', 'e2e', 'tests')
@@ -13,7 +17,6 @@ const STORAGE_STATE_PATH = path.join(__dirname, 'test', 'e2e', 'state', 'storage
 const OS_BROWSERS =
   os.platform() === 'darwin' ? [{name: 'webkit', use: {...devices['Desktop Safari']}}] : []
 
-loadEnvFiles()
 ensureStorageState()
 
 /**
@@ -68,8 +71,9 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
+    command: 'yarn dev',
     port: 3333,
+    reuseExistingServer: !CI,
   },
 })
 
