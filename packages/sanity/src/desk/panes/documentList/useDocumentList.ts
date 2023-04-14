@@ -61,6 +61,14 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     [items.length, count]
   )
 
+  // The range of items to fetch.
+  // The page variable increments when the user scrolls to the bottom of the list.
+  const range = `[0...${page * PARTIAL_PAGE_LIMIT}]`
+
+  // The query to fetch the documents for the list. It consists of:
+  // - The filter (search, custom filter from structure builder, etc)
+  // - The sort order (if any)
+  // - The range (the number of items to fetch)
   const query = useMemo(() => {
     const extendedProjection = sortOrder?.extendedProjection
     const projectionFields = ['_id', '_type']
@@ -68,8 +76,6 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     const sortBy = sortOrder?.by || []
     const sort = sortBy.length > 0 ? sortBy : DEFAULT_ORDERING.by
     const order = toOrderClause(sort)
-
-    const range = `[0...${page * PARTIAL_PAGE_LIMIT}]`
 
     if (extendedProjection) {
       const firstProjection = projectionFields.concat(extendedProjection).join(',')
@@ -81,7 +87,7 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     }
 
     return `*[${filter}]|order(${order})${range}{${finalProjection}}`
-  }, [sortOrder?.extendedProjection, sortOrder?.by, page, filter])
+  }, [sortOrder?.extendedProjection, sortOrder?.by, filter, range])
 
   const handleListChange = useCallback(() => {
     listChangeSubject.next(undefined)

@@ -17,7 +17,7 @@ const INITIAL_STATE = {loading: true, data: null, error: null}
 
 /**
  * @internal
- * Returns the number of documents of a given type
+ * A utility hook for fetching data with a filter and params
  */
 export function useFetch<T>(props: FetchProps): Loadable<T> {
   const {filter, params} = props

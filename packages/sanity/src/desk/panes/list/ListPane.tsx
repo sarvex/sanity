@@ -126,6 +126,7 @@ export function ListPane(props: ListPaneProps) {
     <Pane
       currentMaxWidth={350}
       data-testid="desk-tool-list-pane"
+      data-ui="ListPane"
       id={paneKey}
       maxWidth={640}
       minWidth={320}
