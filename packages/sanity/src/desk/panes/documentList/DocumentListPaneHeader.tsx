@@ -15,12 +15,12 @@ interface DocumentListPaneHeaderProps {
   setLayout: (layout: GeneralPreviewLayoutKey) => void
   setSortOrder: (sortOrder: SortOrder) => void
   title: string
-  content?: React.ReactNode
+  contentAfter?: React.ReactNode
 }
 
 export const DocumentListPaneHeader = memo(
   ({
-    content,
+    contentAfter,
     index,
     initialValueTemplates = [],
     menuItemGroups = [],
@@ -61,7 +61,7 @@ export const DocumentListPaneHeader = memo(
             menuItems={menuItems}
           />
         }
-        content={content}
+        contentAfter={contentAfter}
       />
     )
   }

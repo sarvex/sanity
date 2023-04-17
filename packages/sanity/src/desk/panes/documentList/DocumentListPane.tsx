@@ -20,7 +20,6 @@ import {DocumentListPaneContent} from './DocumentListPaneContent'
 import {DocumentListPaneHeader} from './DocumentListPaneHeader'
 import {SortOrder} from './types'
 import {useDocumentList} from './useDocumentList'
-import {useDocumentTypeNames} from './hooks'
 import {GeneralPreviewLayoutKey, SourceProvider, useSchema, useSource, useUnique} from 'sanity'
 
 type DocumentListPaneProps = BaseDeskToolPaneProps<'documentList'>
@@ -115,21 +114,6 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
   const [searchQuery, setSearchQuery] = useState<string | null>(null)
   const [searchInputElement, setSearchInputElement] = useState<HTMLInputElement | null>(null)
 
-  // Since a document list pane can be used to display documents of multiple types, we need to
-  // fetch the names of all document types that matches the filter and params in order to be able
-  // to search for documents of all types.
-  const {data: documentTypeNames} = useDocumentTypeNames({
-    filter,
-    params,
-  })
-
-  // The preview fields are used to determine which fields to search for
-  const allPreviewFields = useMemo(() => {
-    if (!documentTypeNames) return []
-
-    return documentTypeNames.map((name) => schema.get(name)?.preview?.select?.title).filter(Boolean)
-  }, [documentTypeNames, schema])
-
   // Ensure that we use the defaultOrdering value from structure builder if any as the default
   const defaultSortOrder = useMemo(() => {
     return defaultOrdering?.length > 0 ? {by: defaultOrdering} : DEFAULT_ORDERING
@@ -178,22 +162,12 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
     }
   }, [])
 
-  // Add search query to filter
-  const filterWithSearchQuery = useMemo(() => {
-    if (searchQuery && allPreviewFields.length > 0) {
-      return `${filter} && (${allPreviewFields
-        .map((field) => `${field} match "*${searchQuery}*"`)
-        .join(' || ')})`
-    }
-
-    return filter
-  }, [searchQuery, allPreviewFields, filter])
-
   const {error, handleListChange, isLoading, items, onRetry, hasMaxItems} = useDocumentList({
-    filter: filterWithSearchQuery,
-    params,
-    sortOrder,
     apiVersion,
+    filter,
+    params,
+    searchQuery,
+    sortOrder,
   })
 
   const menuItemsWithSelectedState = useMemo(
@@ -249,7 +223,7 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
 
         <Stack>
           <DocumentListPaneHeader
-            content={listPaneHeaderContent}
+            contentAfter={listPaneHeaderContent}
             index={index}
             initialValueTemplates={initialValueTemplates}
             menuItemGroups={menuItemGroups}

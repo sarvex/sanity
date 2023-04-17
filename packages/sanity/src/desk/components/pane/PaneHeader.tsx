@@ -7,7 +7,7 @@ import {LegacyLayerProvider} from 'sanity'
 interface PaneHeaderProps {
   actions?: React.ReactNode
   backButton?: React.ReactNode
-  content?: React.ReactNode
+  contentAfter?: React.ReactNode
   loading?: boolean
   subActions?: React.ReactNode
   tabIndex?: number
@@ -22,7 +22,7 @@ export const PaneHeader = forwardRef(function PaneHeader(
   props: PaneHeaderProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
-  const {actions, backButton, content, loading, subActions, tabs, tabIndex, title} = props
+  const {actions, backButton, contentAfter, loading, subActions, tabs, tabIndex, title} = props
   const {collapse, collapsed, expand, rootElement: paneElement} = usePane()
   const paneRect = useElementRect(paneElement || null)
 
@@ -95,7 +95,7 @@ export const PaneHeader = forwardRef(function PaneHeader(
               </Flex>
             )}
 
-            {!collapsed && content && content}
+            {!collapsed && contentAfter && contentAfter}
           </Card>
         </LegacyLayerProvider>
       </Root>

@@ -1,10 +1,12 @@
 import {useEffect, useState, useCallback, useMemo, useRef} from 'react'
 import {concat, of, filter as filterEvents} from 'rxjs'
 import {DocumentListPaneItem, QueryResult, SortOrder} from './types'
-import {removePublishedWithDrafts, toOrderClause} from './helpers'
-import {DEFAULT_ORDERING, FULL_LIST_LIMIT, PARTIAL_PAGE_LIMIT} from './constants'
+import {removePublishedWithDrafts} from './helpers'
+import {FULL_LIST_LIMIT, PARTIAL_PAGE_LIMIT} from './constants'
 import {getQueryResults} from './getQueryResults'
-import {DEFAULT_STUDIO_CLIENT_OPTIONS, FIXME, useClient} from 'sanity'
+import {createDocumentListQuery} from './createDocumentListQuery'
+import {useDocumentTypeNames} from './hooks'
+import {DEFAULT_STUDIO_CLIENT_OPTIONS, FIXME, useClient, useSchema} from 'sanity'
 
 const EMPTY_ARRAY: [] = []
 
@@ -22,6 +24,7 @@ interface UseDocumentListOpts {
   params: Record<string, unknown>
   sortOrder?: SortOrder
   apiVersion?: string
+  searchQuery: string | null
 }
 
 interface DocumentListState {
@@ -37,13 +40,17 @@ interface DocumentListState {
  * @internal
  */
 export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
-  const {apiVersion, filter, params, sortOrder} = opts
+  const {apiVersion, filter, params, sortOrder, searchQuery} = opts
   const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
+  const schema = useSchema()
+
   const [result, setResult] = useState<QueryResult>(INITIAL_STATE)
   const error = result?.error || null
   const isLoading = result?.loading || result === null
   const onRetry = result?.onRetry
   const documents = result?.result?.documents
+
+  // Documents filtered to remove published documents that have a draft version.
   const items = useMemo(
     () => (documents ? removePublishedWithDrafts(documents) : EMPTY_ARRAY),
     [documents]
@@ -51,7 +58,6 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
 
   // A state variable to keep track of the current page index (used for determining the range of items to fetch).
   const [pageIndex, setPageIndex] = useState<number>(0)
-
   // A ref to keep track of whether we have fetched all the items or not.
   const hasFetchedAllItems = useRef<boolean>(false)
   // A boolean to keep track of whether we have fetched the maximum number of items or not.
@@ -60,33 +66,39 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   // we don't need to fetch more items.
   const hasFullList = hasMaxItems || hasFetchedAllItems.current
 
-  // The query to fetch the documents for the list. It consists of:
-  // - The filter (search, custom filter from structure builder, etc)
-  // - The sort order (if any)
-  // - The range (the number of items to fetch)
-  const query = useMemo(() => {
-    const extendedProjection = sortOrder?.extendedProjection
-    const projectionFields = ['_id', '_type']
-    const finalProjection = projectionFields.join(',')
-    const sortBy = sortOrder?.by || EMPTY_ARRAY
-    const sort = sortBy.length > 0 ? sortBy : DEFAULT_ORDERING.by
-    const order = toOrderClause(sort)
+  // Fetch the names of all document types that match the filter and params.
+  // This allows us to search for documents of all types.
+  const {data: documentTypeNames, loading: loadingDocumentTypeNames} = useDocumentTypeNames({
+    filter,
+    params,
+  })
 
+  // Extract the preview title field for each document type and memoize the result.
+  // This is necessary because we want the search logic to search for what's visible in the list.
+  const searchFields: string[] = useMemo(() => {
+    // If the document type names haven't loaded yet or if there are no document types, return an empty array.
+    if (!documentTypeNames) return []
+
+    // Extract the preview title field for each document type (that is, the visible title in the list)
+    return documentTypeNames
+      .map((name) => schema.get(name)?.preview?.select?.title)
+      .filter(Boolean) as string[]
+  }, [documentTypeNames, schema])
+
+  // Construct the query to fetch the documents
+  const query = useMemo(() => {
     const start = pageIndex * PARTIAL_PAGE_LIMIT
     const end = start + PARTIAL_PAGE_LIMIT
     const range = `[${start}...${end}]`
 
-    if (extendedProjection) {
-      const firstProjection = projectionFields.concat(extendedProjection).join(',')
-      return [
-        `*[${filter}] {${firstProjection}}`,
-        `order(${order}) ${range}`,
-        `{${finalProjection}}`,
-      ].join('|')
-    }
-
-    return `*[${filter}]|order(${order})${range}{${finalProjection}}`
-  }, [sortOrder?.extendedProjection, sortOrder?.by, filter, pageIndex])
+    return createDocumentListQuery({
+      filter,
+      range,
+      searchFields,
+      searchQuery,
+      sortOrder,
+    })
+  }, [filter, pageIndex, searchFields, searchQuery, sortOrder])
 
   const handleListChange = useCallback(() => {
     if (isLoading || hasFullList) return
@@ -145,18 +157,17 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     }
   }, [apiVersion, client, query, params, handleSetResult])
 
-  // If `filter` or `params` changed, set up a new query from scratch.
-  // If `sortOrder` changed, set up a new query from scratch as well.
+  // Reset the result and page index when the filter, params, sort order or search query changes.
   useEffect(() => {
     setResult(INITIAL_STATE)
     setPageIndex(0)
-  }, [filter, params, sortOrder, apiVersion])
+  }, [filter, params, sortOrder, searchQuery])
 
   return {
     error,
     handleListChange,
     hasMaxItems,
-    isLoading,
+    isLoading: isLoading || loadingDocumentTypeNames,
     items,
     onRetry,
   }

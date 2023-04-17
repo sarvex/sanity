@@ -535,8 +535,8 @@ export const CommandList = forwardRef<CommandListHandle, CommandListProps>(funct
     }
   }, [autoFocus, focusElement])
 
-  // If the input element is present, use the input element as the
-  // focusable element (and set tabIndex to -1).
+  // If the input element is present, we want to ensure that the virtual list element is not focusable.
+  // This is to prevent the virtual list from being focused when the input element is focused.
   const rootTabIndex = inputElement ? -1 : tabIndex
 
   return (
