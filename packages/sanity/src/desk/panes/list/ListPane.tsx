@@ -161,7 +161,7 @@ export function ListPane(props: ListPaneProps) {
             itemHeight={51}
             items={items}
             padding={2}
-            paddingBottom={0}
+            paddingBottom={1}
             ref={setCommandListRef}
             renderItem={renderItem}
             tabIndex={0}

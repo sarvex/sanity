@@ -226,9 +226,9 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
             items={items}
             key={key}
             onEndReached={handleEndReached}
-            overscan={5}
+            overscan={10}
             padding={2}
-            paddingBottom={0}
+            paddingBottom={1}
             ref={commandListRef}
             renderItem={renderItem}
             tabIndex={0}
