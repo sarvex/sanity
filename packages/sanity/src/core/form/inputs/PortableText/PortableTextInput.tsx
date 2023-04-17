@@ -79,6 +79,7 @@ export function PortableTextInput(props: PortableTextInputProps) {
     onPathFocus,
     onInsert,
     onPaste,
+    path,
     readOnly,
     renderBlockActions,
     renderCustomMarkers,
@@ -97,11 +98,10 @@ export function PortableTextInput(props: PortableTextInputProps) {
   }))
 
   // TODO: why are these not stable???
-  const _path = useMemo(() => props.path, [])
   const _onChange = useMemo(() => props.onChange, [])
   const _onItemRemove = useMemo(() => props.onItemRemove, [])
 
-  const {subscribe} = usePatches({path: _path})
+  const {subscribe} = usePatches({path})
   const editorRef = useRef<PortableTextEditor | null>(null)
   const [hasFocus, setHasFocus] = useState(false)
   const [ignoreValidationError, setIgnoreValidationError] = useState(false)
@@ -250,14 +250,14 @@ export function PortableTextInput(props: PortableTextInputProps) {
       debounce(
         (sel: EditorSelection) => {
           if (sel && hasFocus) {
-            const fullPath = _path.concat(sel.focus.path)
+            const fullPath = path.concat(sel.focus.path)
             onPathFocus(fullPath)
           }
         },
         500,
         {trailing: true, leading: false}
       ),
-    [hasFocus, onPathFocus, _path]
+    [hasFocus, onPathFocus, path]
   )
 
   // Handle editor changes
@@ -357,7 +357,6 @@ export function PortableTextInput(props: PortableTextInputProps) {
             >
               <Compositor
                 {...props}
-                path={_path}
                 focused={focused}
                 focusPath={focusPath}
                 hasFocus={hasFocus}
