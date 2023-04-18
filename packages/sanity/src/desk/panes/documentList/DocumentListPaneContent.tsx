@@ -7,6 +7,7 @@ import {Subject, debounceTime} from 'rxjs'
 import {Delay, PaneContent, usePane, usePaneLayout, PaneItem} from '../../components'
 import {useInputType} from '../../input-type'
 import {DocumentListPaneItem} from './types'
+import {FULL_LIST_LIMIT} from './constants'
 import {
   CommandList,
   CommandListHandle,
@@ -67,30 +68,14 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
   const [shouldRender, setShouldRender] = useState(false)
   const commandListRef = useRef<CommandListHandle | null>(null)
 
-  const disableEndReachedRef = useRef<boolean>(false)
-  const endReachedSubject = useRef(new Subject()).current
-
   // Run the onListChange callback and disable the end reached handler for a period of time.
   // This is to avoid triggering the end reached handler too often.
   // The end reached handler is re-enabled after a delay (see the useEffect below)
   const handleEndReached = useCallback(() => {
-    if (disableEndReachedRef.current || isLoading || !shouldRender) return
-
-    disableEndReachedRef.current = true
-    endReachedSubject.next(undefined)
+    if (isLoading || !shouldRender) return
 
     onListChange()
-  }, [endReachedSubject, onListChange, isLoading, shouldRender])
-
-  useEffect(() => {
-    const sub = endReachedSubject.pipe(debounceTime(1000)).subscribe(() => {
-      disableEndReachedRef.current = false
-    })
-
-    return () => {
-      sub.unsubscribe()
-    }
-  }, [endReachedSubject])
+  }, [isLoading, onListChange, shouldRender])
 
   // Determine if the pane should be auto-focused
   useEffect(() => {
@@ -142,7 +127,7 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
           {showMaxItemsMessage && (
             <Box marginY={1} paddingX={3} paddingY={4}>
               <Text align="center" muted size={1}>
-                Displaying maximum amount of documents
+                Displaying a maximum of {FULL_LIST_LIMIT} documents
               </Text>
             </Box>
           )}

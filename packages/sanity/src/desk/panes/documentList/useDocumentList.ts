@@ -29,7 +29,7 @@ interface UseDocumentListOpts {
 
 interface DocumentListState {
   error: {message: string} | null
-  handleListChange: () => void
+  onListChange: () => void
   hasMaxItems?: boolean
   isLoading: boolean
   items: DocumentListPaneItem[]
@@ -65,10 +65,10 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   const [pageIndex, setPageIndex] = useState<number>(0)
 
   // A flag to indicate whether we have reached the limit of the number of items we want to display in the list
-  const hasMaxItems = items.length >= FULL_LIST_LIMIT
+  const hasMaxItems = documents.length === FULL_LIST_LIMIT
 
-  // A flag to indicate whether we have fetched all available documents
-  const hasAllItemsRef = useRef<boolean>(false)
+  // A ref to keep track of whether we have fetched the full list of documents.
+  const fullList = useRef<boolean>(false)
 
   // A flag to indicate whether we should disable lazy loading
   const disableLazyLoading = pageIndex > 0
@@ -105,36 +105,33 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     })
   }, [filter, pageIndex, searchFields, searchQuery, sortOrder])
 
-  const handleListChange = useCallback(() => {
-    if (isLoading || disableLazyLoading || hasAllItemsRef.current) return
+  const onListChange = useCallback(() => {
+    if (isLoading || disableLazyLoading || fullList.current) return
 
     // Increment the page variable to fetch the next set of items
     setPageIndex((v) => v + 1)
   }, [disableLazyLoading, isLoading])
 
-  const handleSetResult = useCallback(
-    (res: QueryResult) => {
-      const isLoadingMoreItems = res?.result?.documents?.length === 0 && disableLazyLoading
+  const handleSetResult = useCallback((res: QueryResult) => {
+    const isLoadingMoreItems = res?.result?.documents?.length === 0 && fullList.current === false
 
-      // The stream emits an empty result when it's loading more items.
-      // We don't want to set the result to an empty array in this case.
-      // Instead, we set the loading state to true and wait for the next result.
-      if (isLoadingMoreItems) {
-        setResult((prev) => ({...prev, loading: true}))
-        return
-      }
+    // The stream emits an empty result when it's loading more items.
+    // We don't want to set the result to an empty array in this case.
+    // Instead, we set the loading state to true and wait for the next result.
+    if (isLoadingMoreItems) {
+      setResult((prev) => ({...prev, loading: true}))
+      return
+    }
 
-      // If the response contains less than the partial page limit, we know that
-      // we have fetched all available documents and can set the hasAllItemsRef flag to true
-      // to prevent further requests.
-      if (res?.result?.documents?.length < PARTIAL_PAGE_LIMIT) {
-        hasAllItemsRef.current = true
-      }
+    // If the response contains less than the partial page limit, we know that
+    // we have fetched all available documents and can set the fullList flag to true
+    // to prevent further requests.
+    if (res?.result?.documents?.length < PARTIAL_PAGE_LIMIT) {
+      fullList.current = true
+    }
 
-      setResult(res)
-    },
-    [disableLazyLoading]
-  )
+    setResult(res)
+  }, [])
 
   // Set up the document list listener
   useEffect(() => {
@@ -159,12 +156,12 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   useEffect(() => {
     setResult(INITIAL_STATE)
     setPageIndex(0)
-    hasAllItemsRef.current = false
+    fullList.current = false
   }, [filter, params, sortOrder, searchQuery])
 
   return {
     error,
-    handleListChange,
+    onListChange,
     hasMaxItems,
     isLoading: isLoading || loadingDocumentTypeNames,
     items,

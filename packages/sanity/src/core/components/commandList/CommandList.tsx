@@ -116,6 +116,8 @@ export const CommandList = forwardRef<CommandListHandle, CommandListProps>(funct
   const [pointerOverlayElement, setPointerOverlayElement] = useState<HTMLDivElement | null>(null)
   const [virtualListElement, setVirtualListElement] = useState<HTMLDivElement | null>(null)
 
+  const reachedEndPrev = useRef<boolean>(false)
+
   const handleChange = useCallback(
     (v: Virtualizer<HTMLDivElement, Element>) => {
       if (!onEndReached) return
@@ -126,9 +128,12 @@ export const CommandList = forwardRef<CommandListHandle, CommandListProps>(funct
 
       const reachedEnd = lastItem.index >= items.length - onEndReachedIndexThreshold - 1
 
-      if (reachedEnd) {
+      // Make sure we only trigger `onEndReached` once
+      if (!reachedEndPrev.current && reachedEnd) {
         onEndReached()
       }
+
+      reachedEndPrev.current = reachedEnd
     },
     [onEndReached, items.length, onEndReachedIndexThreshold]
   )
