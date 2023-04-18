@@ -20,7 +20,9 @@ export function createDocumentListQuery(options: CreateDocumentListQueryOptions)
   const sort = sortBy.length > 0 ? sortBy : DEFAULT_ORDERING.by
   const order = toOrderClause(sort)
 
-  const searchFilter = (searchFields || [])
+  const uniqueSearchFields = searchFields ? [...new Set(searchFields)] : []
+
+  const searchFilter = uniqueSearchFields
     .map((field) => `${field} match "*${searchQuery}*"`)
     .join(' || ')
 

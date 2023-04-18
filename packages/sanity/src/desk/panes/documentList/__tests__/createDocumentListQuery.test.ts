@@ -38,4 +38,17 @@ describe('desk: createDocumentListQuery', () => {
 
     expect(query).toBe(result)
   })
+
+  it('should remove duplicate search fields', () => {
+    const query = createDocumentListQuery({
+      filter: '_type == $type',
+      range: '[0...10]',
+      searchFields: ['title', 'title', 'description', 'description', 'description'],
+      searchQuery: 'test',
+    })
+
+    const result = `*[_type == $type && (title match "*test*" || description match "*test*")]|order(_updatedAt desc)[0...10]{_id,_type}`
+
+    expect(query).toBe(result)
+  })
 })

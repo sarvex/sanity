@@ -4,6 +4,20 @@ import shallowEquals from 'shallow-equals'
 import {isEqual} from 'lodash'
 import {SearchIcon} from '@sanity/icons'
 import styled, {css} from 'styled-components'
+import {
+  EMPTY,
+  Observable,
+  Subject,
+  debounce,
+  distinctUntilChanged,
+  finalize,
+  map,
+  of,
+  takeUntil,
+  tap,
+  timer,
+} from 'rxjs'
+import {useObservableCallback} from 'react-rx'
 import {Pane} from '../../components/pane'
 import {_DEBUG} from '../../constants'
 import {useDeskToolSetting} from '../../useDeskToolSetting'
@@ -109,9 +123,10 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
     defaultLayout
   )
 
-  const inputType = useInputType()
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [inputValue, setInputValue] = useState<string>('')
 
-  const [searchQuery, setSearchQuery] = useState<string | null>(null)
+  const inputType = useInputType()
   const [searchInputElement, setSearchInputElement] = useState<HTMLInputElement | null>(null)
 
   // Ensure that we use the defaultOrdering value from structure builder if any as the default
@@ -149,26 +164,27 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
     return 'No documents found'
   }, [filterIsSimpleTypeConstraint, searchQuery, typeName])
 
-  const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value)
-  }, [])
+  const handleQueryChange = useObservableCallback(
+    (event$: Observable<React.ChangeEvent<HTMLInputElement>>) => {
+      return event$.pipe(
+        map((event) => event.currentTarget.value),
+        tap(setInputValue),
+        debounce((value) => (value === '' ? EMPTY : timer(300))),
+        distinctUntilChanged(),
+        tap(setSearchQuery)
+      )
+    },
+    []
+  )
 
-  const handleClearSearch = useCallback(() => setSearchQuery(null), [])
-
-  // Reset search query on "Escape" key press
-  const handleSearchKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') {
-      setSearchQuery(null)
-    }
-  }, [])
-
-  const {error, handleListChange, isLoading, items, onRetry, hasMaxItems} = useDocumentList({
-    apiVersion,
-    filter,
-    params,
-    searchQuery,
-    sortOrder,
-  })
+  const {error, handleListChange, isLoading, items, onRetry, hasMaxItems, searchReady} =
+    useDocumentList({
+      apiVersion,
+      filter,
+      params,
+      searchQuery,
+      sortOrder,
+    })
 
   const menuItemsWithSelectedState = useMemo(
     () =>
@@ -180,26 +196,44 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
     [layout, menuItems, sortOrderRaw]
   )
 
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('')
+    setInputValue('')
+  }, [])
+
+  // Reset search query on "Escape" key press
+  const handleSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Escape') {
+        handleClearSearch()
+      }
+    },
+    [handleClearSearch]
+  )
+
   // Clear search field when switching between panes
   useEffect(() => {
-    setSearchQuery(null)
-  }, [paneKey])
+    handleClearSearch()
+  }, [paneKey, handleClearSearch])
 
   const listPaneHeaderContent = (
     <Box paddingX={2} paddingBottom={2}>
       <SearchCard tone="transparent" data-focus-visible={inputType === 'keyboard'}>
         <TextInput
+          autoComplete="off"
           border={false}
           clearButton={Boolean(searchQuery)}
+          disabled={!searchReady}
           fontSize={[2, 1]}
           icon={SearchIcon}
-          onChange={handleSearchChange}
+          onChange={handleQueryChange}
           onClear={handleClearSearch}
           onKeyDown={handleSearchKeyDown}
           placeholder="Search list"
           radius={2}
           ref={setSearchInputElement}
-          value={searchQuery || ''}
+          spellCheck={false}
+          value={inputValue}
         />
       </SearchCard>
     </Box>

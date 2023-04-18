@@ -1,5 +1,5 @@
 import {Box} from '@sanity/ui'
-import {useVirtualizer} from '@tanstack/react-virtual'
+import {useVirtualizer, Virtualizer} from '@tanstack/react-virtual'
 import throttle from 'lodash/throttle'
 import React, {
   cloneElement,
@@ -116,24 +116,30 @@ export const CommandList = forwardRef<CommandListHandle, CommandListProps>(funct
   const [pointerOverlayElement, setPointerOverlayElement] = useState<HTMLDivElement | null>(null)
   const [virtualListElement, setVirtualListElement] = useState<HTMLDivElement | null>(null)
 
+  const handleChange = useCallback(
+    (v: Virtualizer<HTMLDivElement, Element>) => {
+      if (!onEndReached) return
+
+      const [lastItem] = [...v.getVirtualItems()].reverse()
+
+      if (!lastItem) return
+
+      const reachedEnd = lastItem.index >= items.length - onEndReachedIndexThreshold - 1
+
+      if (reachedEnd) {
+        onEndReached()
+      }
+    },
+    [onEndReached, items.length, onEndReachedIndexThreshold]
+  )
+
   // This will trigger a re-render whenever its internal state changes
   const virtualizer = useVirtualizer({
     count: items.length,
     getItemKey,
     getScrollElement: () => virtualListElement,
     estimateSize: () => itemHeight,
-    onChange: onEndReached
-      ? (v) => {
-          // Check if last item is visible
-          const [lastItem] = [...v.getVirtualItems()].reverse()
-          if (!lastItem) {
-            return
-          }
-          if (lastItem.index >= items.length - onEndReachedIndexThreshold - 1) {
-            onEndReached()
-          }
-        }
-      : undefined,
+    onChange: handleChange,
     overscan,
   })
 

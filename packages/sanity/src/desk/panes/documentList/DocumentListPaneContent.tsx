@@ -74,13 +74,13 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
   // This is to avoid triggering the end reached handler too often.
   // The end reached handler is re-enabled after a delay (see the useEffect below)
   const handleEndReached = useCallback(() => {
-    if (disableEndReachedRef.current || isLoading) return
+    if (disableEndReachedRef.current || isLoading || !shouldRender) return
 
     disableEndReachedRef.current = true
     endReachedSubject.next(undefined)
 
     onListChange()
-  }, [endReachedSubject, onListChange, isLoading])
+  }, [endReachedSubject, onListChange, isLoading, shouldRender])
 
   useEffect(() => {
     const sub = endReachedSubject.pipe(debounceTime(1000)).subscribe(() => {
@@ -118,6 +118,7 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
       const pressed = !isActive && isSelected
       const selected = isActive && isSelected
       const showSpinner = activeIndex === items.length - 1 && isLoading
+      const showMaxItemsMessage = hasMaxItems && activeIndex === items.length - 1
 
       return (
         <>
@@ -138,7 +139,7 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
             </Flex>
           )}
 
-          {hasMaxItems && activeIndex === items.length - 1 && (
+          {showMaxItemsMessage && (
             <Box marginY={1} paddingX={3} paddingY={4}>
               <Text align="center" muted size={1}>
                 Displaying maximum amount of documents
@@ -168,7 +169,6 @@ export function DocumentListPaneContent(props: DocumentListPaneContentProps) {
 
               {onRetry && (
                 <Box>
-                  {/* eslint-disable-next-line react/jsx-handler-names */}
                   <Button icon={SyncIcon} onClick={onRetry} text="Retry" tone="primary" />
                 </Box>
               )}

@@ -34,6 +34,7 @@ interface DocumentListState {
   isLoading: boolean
   items: DocumentListPaneItem[]
   onRetry?: (event: unknown) => void
+  searchReady: boolean
 }
 
 /**
@@ -50,21 +51,27 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   const onRetry = result?.onRetry
   const documents = result?.result?.documents
 
-  // Documents filtered to remove published documents that have a draft version.
+  // Remove published documents that have a corresponding draft document.
   const items = useMemo(
     () => (documents ? removePublishedWithDrafts(documents) : EMPTY_ARRAY),
     [documents]
   )
 
   // A state variable to keep track of the current page index (used for determining the range of items to fetch).
+  // Note: the pageIndex currently only has two values: 0 and 1. This is because the document list is fetched in two batches:
+  // 1. The first batch is the partial page (the one that is visible when the pane is first opened).
+  // 2. The second batch is the full page (the one that is visible when the user scrolls to the bottom of the list).
+  // In future iterations, we may want to introduce more pages to allow for lazy loading of the list, and not just the first two pages.
   const [pageIndex, setPageIndex] = useState<number>(0)
-  // A ref to keep track of whether we have fetched all the items or not.
-  const hasFetchedAllItems = useRef<boolean>(false)
-  // A boolean to keep track of whether we have fetched the maximum number of items or not.
+
+  // A flag to indicate whether we have reached the limit of the number of items we want to display in the list
   const hasMaxItems = items.length >= FULL_LIST_LIMIT
-  // If we have fetched all the items or we have reached the maximum number of items,
-  // we don't need to fetch more items.
-  const hasFullList = hasMaxItems || hasFetchedAllItems.current
+
+  // A flag to indicate whether we have fetched all available documents
+  const hasAllItemsRef = useRef<boolean>(false)
+
+  // A flag to indicate whether we should disable lazy loading
+  const disableLazyLoading = pageIndex > 0
 
   // Fetch the names of all document types that match the filter and params.
   // This allows us to search for documents of all types.
@@ -77,7 +84,7 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   // This is necessary because we want the search logic to search for what's visible in the list.
   const searchFields: string[] = useMemo(() => {
     // If the document type names haven't loaded yet or if there are no document types, return an empty array.
-    if (!documentTypeNames) return []
+    if (!documentTypeNames) return EMPTY_ARRAY
 
     // Extract the preview title field for each document type (that is, the visible title in the list)
     return documentTypeNames
@@ -87,9 +94,7 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
 
   // Construct the query to fetch the documents
   const query = useMemo(() => {
-    const start = pageIndex * PARTIAL_PAGE_LIMIT
-    const end = start + PARTIAL_PAGE_LIMIT
-    const range = `[${start}...${end}]`
+    const range = pageIndex === 0 ? `[0...${PARTIAL_PAGE_LIMIT}]` : `[0...${FULL_LIST_LIMIT}]`
 
     return createDocumentListQuery({
       filter,
@@ -101,41 +106,34 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   }, [filter, pageIndex, searchFields, searchQuery, sortOrder])
 
   const handleListChange = useCallback(() => {
-    if (isLoading || hasFullList) return
+    if (isLoading || disableLazyLoading || hasAllItemsRef.current) return
 
     // Increment the page variable to fetch the next set of items
     setPageIndex((v) => v + 1)
-  }, [hasFullList, isLoading])
+  }, [disableLazyLoading, isLoading])
 
   const handleSetResult = useCallback(
     (res: QueryResult) => {
-      const isLoadingMoreItems = res?.result?.documents?.length === 0 && pageIndex > 1
+      const isLoadingMoreItems = res?.result?.documents?.length === 0 && disableLazyLoading
 
-      // If the result is empty and the page is greater than 1, it means that we are
-      // loading more items. In that case, we don't want to set the result to the state
-      // with no documents, but rather keep the current result and set the loading state
-      // to true.
+      // The stream emits an empty result when it's loading more items.
+      // We don't want to set the result to an empty array in this case.
+      // Instead, we set the loading state to true and wait for the next result.
       if (isLoadingMoreItems) {
         setResult((prev) => ({...prev, loading: true}))
         return
       }
 
-      // If the result is less than the limit of the partial page, it means that we have
-      // fetched all the items.
-      hasFetchedAllItems.current = res.result.documents.length < PARTIAL_PAGE_LIMIT
+      // If the response contains less than the partial page limit, we know that
+      // we have fetched all available documents and can set the hasAllItemsRef flag to true
+      // to prevent further requests.
+      if (res?.result?.documents?.length < PARTIAL_PAGE_LIMIT) {
+        hasAllItemsRef.current = true
+      }
 
-      setResult((current) => ({
-        ...res,
-        result: {
-          // Concatenate the current documents with the new documents
-          documents: [
-            ...(current?.result?.documents || EMPTY_ARRAY),
-            ...(res?.result?.documents || EMPTY_ARRAY),
-          ],
-        },
-      }))
+      setResult(res)
     },
-    [pageIndex]
+    [disableLazyLoading]
   )
 
   // Set up the document list listener
@@ -161,6 +159,7 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
   useEffect(() => {
     setResult(INITIAL_STATE)
     setPageIndex(0)
+    hasAllItemsRef.current = false
   }, [filter, params, sortOrder, searchQuery])
 
   return {
@@ -170,5 +169,6 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     isLoading: isLoading || loadingDocumentTypeNames,
     items,
     onRetry,
+    searchReady: loadingDocumentTypeNames === false,
   }
 }
