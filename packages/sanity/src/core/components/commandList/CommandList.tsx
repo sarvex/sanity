@@ -373,8 +373,6 @@ export const CommandList = forwardRef<CommandListHandle, CommandListProps>(funct
       // Re-focus current element (input / virtual list element)
       focusElement()
 
-      // setFocusOutlineVisible(false)
-
       if (event.key === 'ArrowDown') {
         event.preventDefault()
         selectAdjacentItemIndex('next')
