@@ -14,8 +14,7 @@ import styled from 'styled-components'
 import {fromString as pathFromString} from '@sanity/util/paths'
 import {Path} from '@sanity/types'
 import {DocumentPaneNode} from '../../types'
-import {usePaneRouter} from '../../components'
-import {PaneFooter} from '../../components/pane'
+import {Pane, PaneFooter, usePaneRouter} from '../../components'
 import {usePaneLayout} from '../../components/pane/usePaneLayout'
 import {ErrorPane} from '../error'
 import {LoadingPane} from '../loading'
@@ -55,8 +54,11 @@ const DIALOG_PROVIDER_POSITION: DialogProviderProps['position'] = [
 const StyledChangeConnectorRoot = styled(ChangeConnectorRoot)`
   flex: 1;
   display: flex;
+  flex-direction: column;
   min-height: 0;
   min-width: 0;
+  outline: 1px solid red;
+  outline-offset: -2px;
 `
 
 export const DocumentPane = memo(function DocumentPane(props: DocumentPaneProviderProps) {
@@ -223,18 +225,6 @@ function InnerDocumentPane() {
   const footerRect = useElementRect(footerElement)
   const footerH = footerRect?.height
 
-  const documentPanel = useMemo(
-    () => (
-      <DocumentPanel
-        footerHeight={footerH || null}
-        isInspectOpen={inspectOpen}
-        rootElement={rootElement}
-        setDocumentPanelPortalElement={setDocumentPanelPortalElement}
-      />
-    ),
-    [footerH, inspectOpen, rootElement]
-  )
-
   // These providers are added because we want the dialogs in `DocumentStatusBar` to be scoped to the document pane.
   // The portal element comes from `DocumentPanel`.
   const footer = useMemo(
@@ -258,89 +248,58 @@ function InnerDocumentPane() {
     [onPathOpen, onFocus]
   )
 
-  const children = useMemo(() => {
-    if (!schemaType) {
-      return (
-        <ErrorPane
-          flex={2.5}
-          minWidth={320}
-          paneKey={paneKey}
-          title={
-            <>
-              Unknown document type: <code>{documentType}</code>
-            </>
-          }
-          tone="caution"
-        >
-          <Stack space={4}>
-            {documentType && (
-              <Text as="p">
-                This document has the schema type <code>{documentType}</code>, which is not defined
-                as a type in the local content studio schema.
-              </Text>
-            )}
-
-            {!documentType && (
-              <Text as="p">
-                This document does not exist, and no schema type was specified for it.
-              </Text>
-            )}
-
-            {isDev && value && (
-              <>
-                <Text as="p">Here is the JSON representation of the document:</Text>
-                <Card padding={3} overflow="auto" radius={2} shadow={1} tone="inherit">
-                  <Code language="json" size={[1, 1, 2]}>
-                    {JSON.stringify(value, null, 2)}
-                  </Code>
-                </Card>
-              </>
-            )}
-          </Stack>
-        </ErrorPane>
-      )
-    }
-
-    return (
-      <>
-        <DialogProvider position={DIALOG_PROVIDER_POSITION} zOffset={zOffsets.portal}>
-          <Flex direction="column" flex={1} height={layoutCollapsed ? undefined : 'fill'}>
-            <StyledChangeConnectorRoot
-              data-testid="change-connector-root"
-              isReviewChangesOpen={changesOpen}
-              onOpenReviewChanges={onHistoryOpen}
-              onSetFocus={onConnectorSetFocus}
-            >
-              {documentPanel}
-            </StyledChangeConnectorRoot>
-          </Flex>
-        </DialogProvider>
-        {footer}
-        <DocumentOperationResults />
-      </>
-    )
-  }, [
-    schemaType,
-    zOffsets.portal,
-    layoutCollapsed,
-    changesOpen,
-    onHistoryOpen,
-    onConnectorSetFocus,
-    documentPanel,
-    footer,
-    paneKey,
-    documentType,
-    value,
-  ])
-
   const currentMinWidth =
     DOCUMENT_PANEL_INITIAL_MIN_WIDTH + (inspector ? DOCUMENT_INSPECTOR_MIN_WIDTH : 0)
 
   const minWidth = DOCUMENT_PANEL_MIN_WIDTH + (inspector ? DOCUMENT_INSPECTOR_MIN_WIDTH : 0)
 
+  if (!schemaType) {
+    return (
+      <ErrorPane
+        currentMinWidth={currentMinWidth}
+        flex={2.5}
+        minWidth={minWidth}
+        paneKey={paneKey}
+        title={
+          <>
+            Unknown document type: <code>{documentType}</code>
+          </>
+        }
+        tone="caution"
+      >
+        <Stack space={4}>
+          {documentType && (
+            <Text as="p">
+              This document has the schema type <code>{documentType}</code>, which is not defined as
+              a type in the local content studio schema.
+            </Text>
+          )}
+
+          {!documentType && (
+            <Text as="p">
+              This document does not exist, and no schema type was specified for it.
+            </Text>
+          )}
+
+          {isDev && value && (
+            <>
+              <Text as="p">Here is the JSON representation of the document:</Text>
+              <Card padding={3} overflow="auto" radius={2} shadow={1} tone="inherit">
+                <Code language="json" size={[1, 1, 2]}>
+                  {JSON.stringify(value, null, 2)}
+                </Code>
+              </Card>
+            </>
+          )}
+        </Stack>
+      </ErrorPane>
+    )
+  }
+
   return (
     <DocumentActionShortcuts
       actionsBoxElement={actionsBoxElement}
+      as={Pane}
       currentMinWidth={currentMinWidth}
       data-testid="document-pane"
       flex={2.5}
@@ -349,7 +308,25 @@ function InnerDocumentPane() {
       onKeyUp={onKeyUp}
       rootRef={setRootElement}
     >
-      {children}
+      <DialogProvider position={DIALOG_PROVIDER_POSITION} zOffset={zOffsets.portal}>
+        <Flex direction="column" flex={1} height={layoutCollapsed ? undefined : 'fill'}>
+          <StyledChangeConnectorRoot
+            data-testid="change-connector-root"
+            isReviewChangesOpen={changesOpen}
+            onOpenReviewChanges={onHistoryOpen}
+            onSetFocus={onConnectorSetFocus}
+          >
+            <DocumentPanel
+              footerHeight={footerH || null}
+              isInspectOpen={inspectOpen}
+              rootElement={rootElement}
+              setDocumentPanelPortalElement={setDocumentPanelPortalElement}
+            />
+          </StyledChangeConnectorRoot>
+        </Flex>
+      </DialogProvider>
+      {footer}
+      <DocumentOperationResults />
     </DocumentActionShortcuts>
   )
 }
