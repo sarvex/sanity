@@ -124,16 +124,19 @@ export const DocumentPanel = function DocumentPanel(props: DocumentPanelProps) {
 
   const showInspector = Boolean(!collapsed && inspector)
 
+  // <Flex direction="column" flex={2} overflow={layoutCollapsed ? undefined : 'hidden'}>
+  // </Flex>
+
   return (
-    <Flex direction="column" flex={2} overflow={layoutCollapsed ? undefined : 'hidden'}>
+    <>
       <DocumentPanelHeader rootElement={rootElement} ref={setHeaderElement} />
 
       <PaneContent>
         <Flex height="fill">
           {(features.resizablePanes || !showInspector) && (
-            <Box flex={2}>
-              <PortalProvider element={portalElement} __unstable_elements={{documentScrollElement}}>
-                <BoundaryElementProvider element={documentScrollElement}>
+            <PortalProvider element={portalElement} __unstable_elements={{documentScrollElement}}>
+              <BoundaryElementProvider element={documentScrollElement}>
+                <Box flex={2} style={{position: 'relative', overflow: 'hidden'}}>
                   {activeView.type === 'form' && !isPermissionsLoading && ready && (
                     <>
                       <PermissionCheckBanner
@@ -159,19 +162,23 @@ export const DocumentPanel = function DocumentPanel(props: DocumentPanelProps) {
 
                   {inspectDialog}
 
-                  <div data-testid="document-panel-portal" ref={portalRef} />
-                </BoundaryElementProvider>
-              </PortalProvider>
-            </Box>
+                  <div
+                    data-testid="document-panel-portal"
+                    ref={portalRef}
+                    style={{outline: '1px solid blue', outlineOffset: -5}}
+                  />
+                </Box>
+              </BoundaryElementProvider>
+            </PortalProvider>
           )}
 
           {showInspector && (
             <BoundaryElementProvider element={rootElement}>
-              <DocumentInspectorPanel />
+              <DocumentInspectorPanel flex={1} />
             </BoundaryElementProvider>
           )}
         </Flex>
       </PaneContent>
-    </Flex>
+    </>
   )
 }

@@ -6,7 +6,7 @@ import {
 } from '@sanity/portable-text-editor'
 import React, {memo, useCallback, useMemo, useState} from 'react'
 import {ObjectSchemaType, Path, SchemaType} from '@sanity/types'
-import {Box, Button, Flex, Hotkeys, Text, Tooltip, useElementRect, useToast} from '@sanity/ui'
+import {Box, Button, Flex, Hotkeys, Text, Tooltip, rgba, useElementRect, useToast} from '@sanity/ui'
 import {CollapseIcon, ExpandIcon} from '@sanity/icons'
 import styled, {css} from 'styled-components'
 import {useRovingFocus} from '../../../../components'
@@ -35,7 +35,7 @@ const StyleSelectBox = styled(Box)`
 `
 
 const StyleSelectFlex = styled(Flex)`
-  border-right: 1px solid var(--card-border-color);
+  border-right: ${({theme}) => `1px solid ${rgba(theme.sanity.color.base.border, 0.5)}`};
 `
 
 const ActionMenuBox = styled(Box)<{$withInsertMenu: boolean}>`
@@ -43,12 +43,13 @@ const ActionMenuBox = styled(Box)<{$withInsertMenu: boolean}>`
     $withInsertMenu &&
     css`
       max-width: max-content;
-      border-right: 1px solid var(--card-border-color);
+      border-right: ${({theme}) => `1px solid ${rgba(theme.sanity.color.base.border, 0.5)}`};
     `}
 `
 
 const FullscreenButtonBox = styled(Box)`
-  border-left: 1px solid var(--card-border-color);
+  /* border-left: 1px solid var(--card-border-color); */
+  border-left: ${({theme}) => `1px solid ${rgba(theme.sanity.color.base.border, 0.5)}`};
 `
 
 const SLOW_INITIAL_VALUE_LIMIT = 300

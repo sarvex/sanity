@@ -1,4 +1,4 @@
-import {Card, Container, rem} from '@sanity/ui'
+import {Box, Card, Container, rem} from '@sanity/ui'
 import styled, {css} from 'styled-components'
 import {ScrollContainer} from '../../../components/scroll'
 import {createListName, TEXT_LEVELS} from './text'
@@ -13,9 +13,22 @@ export const Root = styled(Card)<{$fullscreen: boolean}>`
   flex-direction: column;
 `
 
-export const ToolbarCard = styled(Card)`
+export const ToolbarBox = styled(Box)`
   z-index: 10;
   line-height: 0;
+  position: relative;
+
+  &:after {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    border-bottom: 1px solid var(--card-border-color);
+    opacity: 0.5;
+    z-index: 1;
+  }
 `
 
 export const EditableCard = styled(Card)`

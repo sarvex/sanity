@@ -19,6 +19,7 @@ const Root = styled(Card)({
   },
 })
 
+/** @internal */
 export function DocumentInspectorHeaderCard(
   props: {as?: CardProps['as']; flex?: CardProps['flex']} & Omit<
     HTMLProps<HTMLDivElement>,

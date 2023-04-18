@@ -94,6 +94,7 @@ export function ImageActionsMenu(props: ImageActionsMenuProps) {
         }
         portal
         open={isMenuOpen}
+        overflow="auto"
         constrainSize
       >
         <Button
