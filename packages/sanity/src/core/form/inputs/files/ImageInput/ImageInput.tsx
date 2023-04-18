@@ -106,7 +106,10 @@ function passThrough({children}: {children?: React.ReactNode}) {
 
 const ASSET_FIELD_PATH = ['asset']
 
-const ASSET_IMAGE_MENU_POPOVER: MenuButtonProps['popover'] = {portal: true}
+const ASSET_IMAGE_MENU_POPOVER: MenuButtonProps['popover'] = {
+  constrainSize: true,
+  portal: true,
+}
 
 /** @internal */
 export class BaseImageInput extends React.PureComponent<BaseImageInputProps, BaseImageInputState> {
