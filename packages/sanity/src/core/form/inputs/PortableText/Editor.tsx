@@ -24,7 +24,7 @@ import {
   EditableWrapper,
   Root,
   Scroller,
-  ToolbarCard,
+  ToolbarBox,
 } from './Editor.styles'
 import {useSpellcheck} from './hooks/useSpellCheck'
 import {useScrollSelectionIntoView} from './hooks/useScrollSelectionIntoView'
@@ -161,7 +161,7 @@ export function Editor(props: EditorProps) {
   return (
     <Root $fullscreen={isFullscreen} data-testid="pt-editor">
       {isActive && (
-        <ToolbarCard data-testid="pt-editor__toolbar-card" shadow={1}>
+        <ToolbarBox data-testid="pt-editor__toolbar-card">
           <Toolbar
             hotkeys={hotkeys}
             isFullscreen={isFullscreen}
@@ -169,7 +169,7 @@ export function Editor(props: EditorProps) {
             onToggleFullscreen={onToggleFullscreen}
             readOnly={readOnly}
           />
-        </ToolbarCard>
+        </ToolbarBox>
       )}
 
       <EditableCard flex={1} tone={readOnly ? 'transparent' : 'default'}>
