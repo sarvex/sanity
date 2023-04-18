@@ -112,26 +112,31 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     setPageIndex((v) => v + 1)
   }, [disableLazyLoading, isLoading])
 
-  const handleSetResult = useCallback((res: QueryResult) => {
-    const isLoadingMoreItems = res?.result?.documents?.length === 0 && fullList.current === false
+  const handleSetResult = useCallback(
+    (res: QueryResult) => {
+      // We check if pageIndex is greater than 0 to determine if we have
+      // scrolled to the bottom of the list and are loading more items.
+      const isLoadingMoreItems = res?.result?.documents?.length === 0 && pageIndex > 0
 
-    // The stream emits an empty result when it's loading more items.
-    // We don't want to set the result to an empty array in this case.
-    // Instead, we set the loading state to true and wait for the next result.
-    if (isLoadingMoreItems) {
-      setResult((prev) => ({...prev, loading: true}))
-      return
-    }
+      // The stream emits an empty result when it's loading more items.
+      // We don't want to set the result to an empty array in this case.
+      // Instead, we set the loading state to true and wait for the next result.
+      if (isLoadingMoreItems) {
+        setResult((prev) => ({...prev, loading: true}))
+        return
+      }
 
-    // If the response contains less than the partial page limit, we know that
-    // we have fetched all available documents and can set the fullList flag to true
-    // to prevent further requests.
-    if (res?.result?.documents?.length < PARTIAL_PAGE_LIMIT) {
-      fullList.current = true
-    }
+      // If the response contains less than the partial page limit, we know that
+      // we have fetched all available documents and can set the fullList flag to true
+      // to prevent further requests.
+      if (res?.result?.documents?.length < PARTIAL_PAGE_LIMIT) {
+        fullList.current = true
+      }
 
-    setResult(res)
-  }, [])
+      setResult(res)
+    },
+    [pageIndex]
+  )
 
   // Set up the document list listener
   useEffect(() => {
@@ -157,7 +162,7 @@ export function useDocumentList(opts: UseDocumentListOpts): DocumentListState {
     setResult(INITIAL_STATE)
     setPageIndex(0)
     fullList.current = false
-  }, [filter, params, sortOrder, searchQuery])
+  }, [filter, params, sortOrder])
 
   return {
     error,

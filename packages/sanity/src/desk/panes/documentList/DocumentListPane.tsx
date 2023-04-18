@@ -4,7 +4,7 @@ import shallowEquals from 'shallow-equals'
 import {isEqual} from 'lodash'
 import {SearchIcon} from '@sanity/icons'
 import styled, {css} from 'styled-components'
-import {EMPTY, Observable, debounce, map, tap, timer} from 'rxjs'
+import {Observable, debounce, map, of, tap, timer} from 'rxjs'
 import {useObservableCallback} from 'react-rx'
 import {Pane} from '../../components/pane'
 import {_DEBUG} from '../../constants'
@@ -175,7 +175,7 @@ export const DocumentListPane = memo(function DocumentListPane(props: DocumentLi
       return event$.pipe(
         map((event) => event.target.value),
         tap(setSearchInputValue),
-        debounce((value) => (value === '' ? EMPTY : timer(300))),
+        debounce((value) => (value === '' ? of('') : timer(300))),
         tap(setSearchQuery)
       )
     },

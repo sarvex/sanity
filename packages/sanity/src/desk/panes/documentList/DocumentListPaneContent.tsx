@@ -3,7 +3,6 @@ import {Box, Button, Container, Flex, Heading, Spinner, Stack, Text} from '@sani
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {SanityDocument} from '@sanity/types'
 import styled from 'styled-components'
-import {Subject, debounceTime} from 'rxjs'
 import {Delay, PaneContent, usePane, usePaneLayout, PaneItem} from '../../components'
 import {useInputType} from '../../input-type'
 import {DocumentListPaneItem} from './types'
