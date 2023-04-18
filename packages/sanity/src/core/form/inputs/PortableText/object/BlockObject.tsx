@@ -7,7 +7,6 @@ import {
 import {ObjectSchemaType, Path, PortableTextBlock} from '@sanity/types'
 import {Tooltip, Flex, ResponsivePaddingProps, Box} from '@sanity/ui'
 import React, {PropsWithChildren, useCallback, useMemo, useState} from 'react'
-import {PatchArg} from '../../../patch'
 import {
   BlockProps,
   RenderAnnotationCallback,
@@ -28,6 +27,7 @@ import {usePortableTextMemberItem} from '../hooks/usePortableTextMembers'
 import {pathToString} from '../../../../field'
 import {debugRender} from '../debugRender'
 import {EMPTY_ARRAY} from '../../../../util'
+import {useFormCallbacks} from '../../../studio'
 import {
   Root,
   ChangeIndicatorWrapper,
@@ -45,7 +45,6 @@ interface BlockObjectProps extends PropsWithChildren {
   focused: boolean
   isActive?: boolean
   isFullscreen?: boolean
-  onChange: (...patches: PatchArg[]) => void
   onItemClose: () => void
   onItemOpen: (path: Path) => void
   onItemRemove: (itemKey: string) => void
@@ -72,7 +71,6 @@ export function BlockObject(props: BlockObjectProps) {
     boundaryElement,
     focused,
     isFullscreen,
-    onChange,
     onItemClose,
     onItemOpen,
     onPathFocus,
@@ -92,6 +90,7 @@ export function BlockObject(props: BlockObjectProps) {
     selected,
     value,
   } = props
+  const {onChange} = useFormCallbacks()
   const {Markers} = useFormBuilder().__internal.components
   const [reviewChangesHovered, setReviewChangesHovered] = useState<boolean>(false)
   const markers = usePortableTextMarkers(path)
